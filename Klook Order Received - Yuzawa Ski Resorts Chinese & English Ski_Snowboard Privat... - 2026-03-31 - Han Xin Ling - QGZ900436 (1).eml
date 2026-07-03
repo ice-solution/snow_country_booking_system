@@ -1,0 +1,685 @@
+Delivered-To: mankleung8@gmail.com
+Received: by 2002:a59:c965:0:b0:5a2:2271:c878 with SMTP id l5csp2945297vqt;
+        Wed, 17 Jun 2026 17:58:20 -0700 (PDT)
+X-Received: by 2002:a05:6102:5107:b0:6da:1341:1147 with SMTP id ada2fe7eead31-7245d3134cdmr4273919137.1.1781744300161;
+        Wed, 17 Jun 2026 17:58:20 -0700 (PDT)
+ARC-Seal: i=2; a=rsa-sha256; t=1781744300; cv=pass;
+        d=google.com; s=arc-20240605;
+        b=VIxEGn9mO8KGioKcmWIW7zHLFSKMv6OGSMjUUxx4Agao4imtT4beLk374Y/UZBpggr
+         ZbPj8kBB4eBvRhUsFP2ELFO6BideeGmlaNHmO3rU+tSNiPli+UWWHivvPTb2hcZZGuK8
+         SoAWEijRqAxTWXtLOUAPU1MaKdlJpKBy55qsW60Ul7YbeDmtEfWm3WX2FxxtxK0m94XF
+         rRQW7PBIeB18gxdWvNBz4absle970u0k84Huth3+i0ETYMFAA9RQYVlCqVvoYfVLprSW
+         rFoHWxBIRYNhGN9hh9DTZkJfXs0wKfzc4YqUYmLpgv5jUVQo9ffJwkWPsaO7jjlbcjPH
+         w5yg==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature;
+        bh=pBeHw6WVt7yCqri7OmAqnbaDuBIl6BqBxdHxsPpwVtI=;
+        fh=5wxbuuSqtJYO4f/OuUoOWUHmfyHtc4A19vxZJ2DoOOw=;
+        b=GDKc0DQBphar4Otn/FUuPv4mOSzHxEGB7FqlIOD8jjpjRd0SPyPl+soSTP9dOQMh3V
+         C1izGQ0ej9Q8/KefWDT1YTrpHxNIISpESlt8fiVkOuBN3JdKG+d0ctVbEGxhaypz0rJ6
+         8PxyQjQtm5qPDSdoigWp6ijSHiaMvCq0DEqO89rEukSjEBLimnfHqsqb1+sijaCgMVxV
+         az6T/HiwHun/iKUbcFOW12vnORuKaLo1FkC2Zi4ArN9Piwq5iYHMN4+3SzCZc12wETx8
+         /NP7WWg1G7quqv7cwcJhiWuq2mPrCjmKrmZK5N9FJo8v8RPmx/scTBq561zQQHkdu6oL
+         5y3A==;
+        dara=google.com
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20251104 header.b=HPiW9Udb;
+       arc=pass (i=1);
+       spf=pass (google.com: domain of kenneth.t.chan@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=kenneth.t.chan@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@gmail.com
+Return-Path: <kenneth.t.chan@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id ada2fe7eead31-728e0a0650dsor154544137.12.2026.06.17.17.58.20
+        for <mankleung8@gmail.com>
+        (Google Transport Security);
+        Wed, 17 Jun 2026 17:58:20 -0700 (PDT)
+Received-SPF: pass (google.com: domain of kenneth.t.chan@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20251104 header.b=HPiW9Udb;
+       arc=pass (i=1);
+       spf=pass (google.com: domain of kenneth.t.chan@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=kenneth.t.chan@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@gmail.com
+ARC-Seal: i=1; a=rsa-sha256; t=1781744300; cv=none;
+        d=google.com; s=arc-20240605;
+        b=XFAM/F3Rp9llQz1FyigRTykDMCGUDhy3EKHoa4iDqIj6mMigeWXNIuTUr/TOBK38Y/
+         Nqu77bhZBKrz5JZ6g1G0Qe+3+SbnBp7jJ2XS/Uz5H0ig7IfWeUsEVrv/6DLyGf9KW2YB
+         S9vjsbgDOj/uwvTyoeVK8O0uHORkbUOEpBmAoblXoSNMCfT3S0kBeAkgQLXqFBIFrP3J
+         D5x5J90mtlm+sfc8E9ArbWpw1JmZw9q616VmajZglpszQP96mxXMj1enI1TfOg2ykMf6
+         OWHYKpftdgNefDNIVBlXGXf6rie7FautDQzepyBizWI/1qdfWIoiIi6vG8UvOZep76nl
+         kOQQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature;
+        bh=pBeHw6WVt7yCqri7OmAqnbaDuBIl6BqBxdHxsPpwVtI=;
+        fh=5wxbuuSqtJYO4f/OuUoOWUHmfyHtc4A19vxZJ2DoOOw=;
+        b=GLB345X4Mo/iSKgR6q45+b/Lp5sH2NOjn7zErMzEy/rZNzc4K7b9WSsTF2HRjfKJdM
+         cextYM0xTtNb89odRUHZXV0sIIbkedDmOV6K5twj3tK5HFcgsDvcX+h2HAuSAqqIGCkH
+         dInpibF4eaBEogv4o4Tlh+JhVHoYiKrJKalVFd0oRhaXvwQY8ln8e/SaRC9SaEPuSZKE
+         jXnPRUgwBSS5MdB0IQqVV2dCQZihgIQmjtdmwK5wqIygIdjVYd6XPBPHaasJ/LB7MDBs
+         vASR0i8qUTzHYWKKaFE55NjpEqNIZAwLtgHZtpouGHr6qnz//V0wPBT2f+MNMz7tpshc
+         bYRw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1781744300; x=1782349100; dara=google.com;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=pBeHw6WVt7yCqri7OmAqnbaDuBIl6BqBxdHxsPpwVtI=;
+        b=HPiW9Udb0quNVe4J0kALr+JhD0NFPJlE2YW0yMteu7tON6ca5e2PRdoQ8l5z/R2qf2
+         EQgfOC/UyS6B/R/9B/fRD+ejtJOBU4nxoC9ZFno3jhOGx5rLu+k7WsP4dJvbSTnnhPKU
+         uau7hlp0gHPT0NWIzCNP2cWr+1lvHVs8ugnZwn8Pkfqeb54zZhrV6+mh9oZKHJSa6g9I
+         avjk2uHMiFXlOuaAf3GUTM9795Qy/o7Yl5X3FhxsEZffCjDRRpDqf/Oo25mN0Dc0vWp0
+         S3wy9EXc6ud+fGx6o7Qf2rTr5XeminLl8gRhUE7XR80vowEkdx+tBlniNYS7wFdOF5d2
+         4dhQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1781744300; x=1782349100;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=pBeHw6WVt7yCqri7OmAqnbaDuBIl6BqBxdHxsPpwVtI=;
+        b=ChUq3vsJW1r8o3lshSkSzwIb9OsOBwqB8JAzo0hXGI+RZrs34yR2+BzlnEHwWKi7eG
+         PZA6PSdoxR9ENCf1b6+lMwTzmm23uunCdKclrCYZrjmqseMMfYztfVuTmeO8T9mUHk3K
+         jEDU+nbuaLlNHDHHQ0A08jIpxwyKHCud1ZCtM2SLSxuNZ//OVkONvnTWYbpuPmQ0jCv3
+         MOofRNcRiIaB04Ov4MYiW6LaraEZRjE/OTsKwqi3XwYtJ8eNlWMW/8DunOpfHaOlQqJE
+         i69JtBPxW/yFMF6IrRoV3KnW7cqIGYPTTVR/YHp0wmlYw9N86iABvUIkFn+bU56U+qBI
+         Qg0A==
+X-Gm-Message-State: AOJu0Yzn27L+xTAzRfezKlvfqpj26mpWlLa4pU+sVAX5UeEI/dsn0oDJ
+	suAj5ThM0qtLjq4+A1BHuM3/WWJRbJ4LMuIPat89H5xcBg3DBMFGJZUG8j5ceUei96VA+merH4k
+	IQQ66SNCEiMXu31+oL5+1vWp5RwxjVrV9jS9N
+X-Gm-Gg: AfdE7cnmZNXCK7A/mC63Iq9+CXFgGImP4yV80O69NWhZZLSHpMLk+wcPbeYhhi/MoKo
+	PNcxETIFH1xKKRgKGfF7f1HHExXfyU3fwHUQ1UgKCVynHCNZ77wScVR3X3foNIkjqloViTSMLhj
+	BD/3T+YPcq/iNXe0Y6c3fjCS1r1t/d5POWhu8FKMC/6BkZDzVMrwsZQX7k4hz6NKBHMdkpN6VOE
+	MHHrli/QKQv3+tG7pDahpwM7+D68/2Cu/G1nURNYWAERFgc/8AW/F+xqiXwMXcQlpPnXvlW
+X-Received: by 2002:a05:6102:4188:b0:632:3bd5:d572 with SMTP id
+ ada2fe7eead31-7246d538eaemr4108393137.27.1781744299693; Wed, 17 Jun 2026
+ 17:58:19 -0700 (PDT)
+MIME-Version: 1.0
+References: <Yyh2UYkBQNyw5GZS58428A@geopod-ismtpd-6> <CAHLcqkbvmDOcgQQ=yhjVHCNykXqYdtMOrmwrGX+6fXK-aEwm1g@mail.gmail.com>
+ <CANB7bay7Vu00BKBb=DGDui9T5d3dvwFBG-tcFrjTPb02DNPNQg@mail.gmail.com>
+ <CANB7baycRLFniv-oZQdjs4SDTVPiH_uFOFuQLmRhp9jOO42ePA@mail.gmail.com>
+ <CAHLcqkbPtb-obvJfuUkyJvHb4RVboREcFQv_Regh5s1aL34ojQ@mail.gmail.com>
+ <CANB7baxC47HbZjWdbz3ZjEqnejHZO4dTT-+mWbLAOTryRzhQxQ@mail.gmail.com>
+ <CAHLcqkYoOt-syBPLa3eTgiwcE+C+y2irfR03Ww+5yTFHL_Yk5A@mail.gmail.com> <CAHLcqkb_TRRfm1OWGw4GL4hokq4LTrWWnfpVA=-1i_Bdmvx+8Q@mail.gmail.com>
+In-Reply-To: <CAHLcqkb_TRRfm1OWGw4GL4hokq4LTrWWnfpVA=-1i_Bdmvx+8Q@mail.gmail.com>
+From: Kenneth Chan <kenneth.t.chan@gmail.com>
+Date: Thu, 18 Jun 2026 12:58:08 +1200
+X-Gm-Features: AVVi8CcreOx7M26_VhupH3EFLVBxuxe-Iy9ITsHlPnf20qHdInHtQ1ep4cv7GL4
+Message-ID: <CAPqSeKt-7j74AfvQ5HWeByW0BpbPGkcS1HtE_MYUZcx+-1j57g@mail.gmail.com>
+Subject: Fwd: Klook Order Received - Yuzawa Ski Resorts Chinese & English
+ Ski/Snowboard Privat... - 2026-03-31 - Han Xin Ling - QGZ900436
+To: mankleung8@gmail.com
+Content-Type: multipart/alternative; boundary="00000000000010585d06547cac5e"
+
+--00000000000010585d06547cac5e
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Best regards,
+
+Kenneth Chan
+
+---------- Forwarded message ---------
+From: SCI Bookings <info@snowcountry-instructors.com>
+Date: Thu, 18 Jun 2026, 10:39
+Subject: Fwd: Klook Order Received - Yuzawa Ski Resorts Chinese & English
+Ski/Snowboard Privat... - 2026-03-31 - Han Xin Ling - QGZ900436
+To: Kenneth Chan <kenneth.t.chan@gmail.com>
+
+
+This is the initial email we receive, and then go to the Klook backend to
+confirm or reject
+
+>
+>>>>>
+>>>>> <https://click.klook.com/ls/click?upn=3Du001.QPstsPdrjwzo-2FzalvlwHUR=
+VRSG-2Fi3vctWBPxRJviqRyHX-2FjCkIDmvAmHjkJiRpbflVT2_MP2S-2B0f8YZV5jQCnGBr2tg=
+acUQh00UGRpp-2FU-2BfeB7LbIO7eOS-2FQKMxA5KvaCtAUbiiCb6VdQDAv061AQDPYr34QdzNn=
+NmmnjJP2AXDfKa2w71qPzTui7cJK9sTb-2BMCjKUfJUkyMyBKswIYyoTM9YFCEZG-2BSGOrQMY3=
+NN3YnHWKt9zFY0eT-2BJ7WSRz6BBcgQk0PuILr9fq9YlqqiNvApHyr1AAPrra-2FUUTT8-2F4hg=
+kqfc-3D>
+>>>>> Hey there Patrick Latter,
+>>>>>
+>>>>> Klook has received an order for Yuzawa Ski Resorts Chinese & English
+>>>>> Ski/Snowboard Private Lesson - Standard(Iwappara, Yuzawa Nakazato, Is=
+hiuchi
+>>>>> Maruyama, Maiko) =C2=B7 Mandarin. Please confirm availability with us=
+ ASAP - see
+>>>>> below order details:
+>>>>> Yuzawa Ski Resorts Chinese & English Ski/Snowboard Private Lesson
+>>>>>
+>>>>> Package:   Standard(Iwappara, Yuzawa Nakazato, Ishiuchi Maruyama,
+>>>>> Maiko) =C2=B7 Mandarin
+>>>>> Booking reference ID: QGZ900436
+>>>>> Date Request: 2026-03-31
+>>>>> Time Request: NA
+>>>>> Lead participant: (MISS)Han Xin Ling
+>>>>> Country/region of passport:
+>>>>> Participant: 1 x 3 hours (1-4 persons per group)
+>>>>> Activity URL: https://www.klook.com/en-US/activity/15711
+>>>>> <https://click.klook.com/ls/click?upn=3Du001.QPstsPdrjwzo-2FzalvlwHUQ=
+aSXSK1A-2FVe44bu3ibOQsLwrMuvmvPzYboD947Hv6vpgqr1WQ4u8X5Si9E1M8CN8A-3D-3D3lh=
+k_MP2S-2B0f8YZV5jQCnGBr2tgacUQh00UGRpp-2FU-2BfeB7LbIO7eOS-2FQKMxA5KvaCtAUbi=
+iCb6VdQDAv061AQDPYr3yBCNgcdpYXi8NQ6sP-2BFcSVEMarHEmFYJh-2FIK0yk-2BmWNRYdE-2=
+B7iTdPVDqdmGbi58LvU5vl0RhnKbI4PqFNXGi-2BzWYY-2FDyrMuNmMPyaeBzGadwdwnmdEqK5u=
+hNg4bECwS5HGTluJ7XU4EKzV4GzJykTA-3D>
+>>>>> Extra Details
+>>>>> Email Address: hanxinling95@gmail.com
+>>>>> Number of Participants: 2
+>>>>> Preferred Snow Resort (if any): Iwappara
+>>>>> Preferred Participation Time: 9:00am
+>>>>> For April/May bookings, limited resorts are available. The operator
+>>>>> will email the location: I agree
+>>>>> Ski/Snowboard: Ski
+>>>>> For Customer Selecting Chinese Lesson, Chinese Lesson is mostly full
+>>>>> in peak season, would you like to attend English Lesson if the Chines=
+e
+>>>>> Lesson is full?: No
+>>>>> WhatsApp: +6581177581
+>>>>>
+>>>>> To manage the order status or suggest amendments to the booking detai=
+ls
+>>>>> Confirm / Reject bookings
+>>>>> <https://merchant.klook.com/booking?booking_reference_id=3DQGZ900436&=
+from=3Demail>
+>>>>>
+>>>>> Or follow the link below: https://merchant.klook.com/booking?booking_=
+reference_id=3DQGZ900436&from=3Demail
+>>>>>
+>>>>> <https://click.klook.com/ls/click?upn=3Du001.QPstsPdrjwzo-2FzalvlwHUR=
+VRSG-2Fi3vctWBPxRJviqRxemajJx1vT-2BiOtKgnrdi8y3wceCoLjNFQpYvMnQh3iXwiTD3apt=
+NNy5w4tgcAZ38TX4i8-2FyY7dDoKZfZqhAd0G2Qos_MP2S-2B0f8YZV5jQCnGBr2tgacUQh00UG=
+Rpp-2FU-2BfeB7LbIO7eOS-2FQKMxA5KvaCtAUbiiCb6VdQDAv061AQDPYr30SukAv44YMVjAjL=
+6-2F8ucdIF3PYPBBPV35FcKqR5pyrj-2BGqM1cnKorKkVYPRw9Aa6MOXSBDG0V0jFpaevpXrkDi=
+75f2e3w-2Bx5kjkgSO07VlOKfczn5YsiTfGR06ThL1ELf-2FJqlpoN6AkwbUyfAjqCaY-3D>
+>>>>>
+>>>>> To ensure your customer receives the best service, please get back to
+>>>>> us within 12 hours.
+>>>>> Confirmation policy
+>>>>>
+>>>>>    - Your confirmation deadline is before 2026-01-30 15:36 (local
+>>>>>    time)
+>>>>>    - If you don=E2=80=99t confirm by this deadline, the booking will =
+be
+>>>>>    automatically canceled. We=E2=80=99ll inform the customer to conta=
+ct you for
+>>>>>    details, so please respond to customer inquiries promptly.
+>>>>>    - If you cannot confirm this booking, please send an amendment
+>>>>>    request or contact the customer to discuss alternatives
+>>>>>    - Important: Multiple auto-canceled bookings will negatively
+>>>>>    impact your service performance. It may also lower your activity r=
+ankings
+>>>>>    and platform visibility.
+>>>>>
+>>>>> If you have any questions, please contact us at merchant@klook.com.
+>>>>> We typically reply within 7 days, though response times may vary. Tha=
+nk you
+>>>>> for your patience.
+>>>>> Cheers,
+>>>>> Klook Team
+>>>>>
+>>>>> Email: merchant@klook.com
+>>>>>
+>>>>
+
+--00000000000010585d06547cac5e
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"auto"><div><br></div><div><br></div><div data-smartmail=3D"gmai=
+l_signature">Best regards,<br><br>Kenneth Chan</div></div><br><div class=3D=
+"gmail_quote gmail_quote_container"><div dir=3D"ltr" class=3D"gmail_attr">-=
+--------- Forwarded message ---------<br>From: <strong class=3D"gmail_sende=
+rname" dir=3D"auto">SCI Bookings</strong> <span dir=3D"auto">&lt;<a href=3D=
+"mailto:info@snowcountry-instructors.com">info@snowcountry-instructors.com<=
+/a>&gt;</span><br>Date: Thu, 18 Jun 2026, 10:39<br>Subject: Fwd: Klook Orde=
+r Received - Yuzawa Ski Resorts Chinese &amp; English Ski/Snowboard Privat.=
+.. - 2026-03-31 - Han Xin Ling - QGZ900436<br>To: Kenneth Chan &lt;<a href=
+=3D"mailto:kenneth.t.chan@gmail.com">kenneth.t.chan@gmail.com</a>&gt;<br></=
+div><br><br><div dir=3D"auto"><div class=3D"gmail_quote" dir=3D"auto"><div =
+dir=3D"ltr" class=3D"gmail_attr">This is the initial email we receive, and =
+then go to the Klook backend to confirm or reject</div><div class=3D"gmail_=
+quote"><blockquote class=3D"gmail_quote" style=3D"margin:0 0 0 .8ex;border-=
+left:1px #ccc solid;padding-left:1ex"><div class=3D"gmail_quote"><blockquot=
+e class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px s=
+olid rgb(204,204,204);padding-left:1ex"><div class=3D"gmail_quote"><blockqu=
+ote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left:1px=
+ solid rgb(204,204,204);padding-left:1ex"><div><div class=3D"gmail_quote"><=
+blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-l=
+eft:1px solid rgb(204,204,204);padding-left:1ex"><div><div class=3D"gmail_q=
+uote"><blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;b=
+order-left:1px solid rgb(204,204,204);padding-left:1ex"><div dir=3D"ltr"><d=
+iv class=3D"gmail_quote"><br><div><u></u>
+
+
+   =20
+   =20
+   =20
+   =20
+   =20
+   =20
+
+<div style=3D"background-image:none;background-position:0% 0%;background-si=
+ze:auto;background-repeat:repeat;background-origin:padding-box;background-c=
+lip:border-box;margin:0px;padding:0px;width:100%">
+    <table role=3D"presentation" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" style=3D"border-collapse:separate;width:100%">
+        <tbody><tr>
+            <td style=3D"font-size:16px;padding:60px 0px;vertical-align:top=
+;width:100%">
+                <table role=3D"presentation" cellpadding=3D"0" cellspacing=
+=3D"0" align=3D"center" style=3D"background-image:none;background-position:=
+0% 0%;background-size:auto;background-repeat:repeat;background-origin:paddi=
+ng-box;background-clip:border-box;border-collapse:separate;margin:0px auto;=
+width:auto">
+                    <tbody><tr>
+                        <td style=3D"font-size:16px;vertical-align:top;widt=
+h:20px"></td>
+                        <td width=3D"600" style=3D"font-size:16px;vertical-=
+align:top">
+                            <table border=3D"0" cellpadding=3D"0" cellspaci=
+ng=3D"0" style=3D"border-collapse:separate;width:100%">
+                                <tbody><tr>
+                                    <td style=3D"font-size:0px;padding-bott=
+om:40px;vertical-align:top">
+                                        <a href=3D"https://click.klook.com/=
+ls/click?upn=3Du001.QPstsPdrjwzo-2FzalvlwHURVRSG-2Fi3vctWBPxRJviqRyHX-2FjCk=
+IDmvAmHjkJiRpbflVT2_MP2S-2B0f8YZV5jQCnGBr2tgacUQh00UGRpp-2FU-2BfeB7LbIO7eOS=
+-2FQKMxA5KvaCtAUbiiCb6VdQDAv061AQDPYr34QdzNnNmmnjJP2AXDfKa2w71qPzTui7cJK9sT=
+b-2BMCjKUfJUkyMyBKswIYyoTM9YFCEZG-2BSGOrQMY3NN3YnHWKt9zFY0eT-2BJ7WSRz6BBcgQ=
+k0PuILr9fq9YlqqiNvApHyr1AAPrra-2FUUTT8-2F4hgkqfc-3D" rel=3D"noreferrer nore=
+ferrer noreferrer noreferrer" target=3D"_blank">
+                                            <img src=3D"https://res.klook.c=
+om/image/upload/v1640076632/merchant/merchant_email_logo_2x.png" width=3D"2=
+28" style=3D"display:block">
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style=3D"font-size:16px;padding-bot=
+tom:30px;vertical-align:top;color:rgb(51,51,51)">
+                                       =20
+
+
+
+<table cellpadding=3D"0" cellspacing=3D"0" style=3D"border-collapse:separat=
+e;width:100%">
+    <tbody><tr>
+        <td style=3D"font-size:16px;padding-bottom:16px;vertical-align:top"=
+><h2 style=3D"font-size:20px;font-weight:600;line-height:1.2;margin:0px;pad=
+ding:0px;color:rgb(51,51,51)">Hey there Patrick Latter,</h2></td>
+    </tr>
+    <tr>
+        <td style=3D"font-size:16px;padding-bottom:30px;vertical-align:top"=
+><p style=3D"font-size:14px;font-weight:normal;line-height:1.71;margin:0px;=
+color:rgb(51,51,51)">Klook has received an order for Yuzawa Ski Resorts Chi=
+nese &amp; English Ski/Snowboard Private Lesson - Standard(Iwappara, Yuzawa=
+ Nakazato, Ishiuchi Maruyama, Maiko) =C2=B7 Mandarin. Please confirm availa=
+bility with us ASAP - see below order details:</p></td>
+    </tr>
+</tbody></table>
+
+   =20
+   =20
+   =20
+    <table cellpadding=3D"0" cellspacing=3D"0" style=3D"border-collapse:sep=
+arate;width:100%">
+            <tbody><tr>
+                <td style=3D"font-size:16px;padding-bottom:6px;vertical-ali=
+gn:top"><h3 style=3D"font-size:16px;font-weight:600;line-height:1.2;margin:=
+0px;padding:0px;color:rgb(51,51,51)">Yuzawa Ski Resorts Chinese &amp; Engli=
+sh Ski/Snowboard Private Lesson</h3></td>
+            </tr>
+            <tr>
+                <td style=3D"border-radius:2px;font-size:16px;padding:6px 1=
+6px;vertical-align:top;background-color:rgb(239,249,248)"><p style=3D"font-=
+size:14px;font-weight:normal;line-height:1.71;margin:0px;color:rgb(0,150,13=
+3)">Package: =C2=A0 Standard(Iwappara, Yuzawa Nakazato, Ishiuchi Maruyama, =
+Maiko) =C2=B7 Mandarin</p></td>
+            </tr>
+            <tr>
+                <td style=3D"font-size:16px;padding-bottom:12px;vertical-al=
+ign:top"></td>
+            </tr>
+        </tbody></table>
+   =20
+    <table cellpadding=3D"0" cellspacing=3D"0" style=3D"border:1px solid rg=
+b(238,238,238);border-collapse:separate;border-radius:3px;box-sizing:border=
+-box;width:100%">
+        <tbody><tr>
+            <td style=3D"font-size:16px;vertical-align:top;width:16px"></td=
+>
+            <td style=3D"font-size:16px;vertical-align:top">
+                <table cellpadding=3D"0" cellspacing=3D"0" style=3D"border-=
+collapse:separate;width:100%">
+                   =20
+                        <tbody><tr>
+                            <td style=3D"border-top:1px solid rgb(238,238,2=
+38);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;ver=
+tical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                <span style=3D"display:inline-block;font-we=
+ight:600;padding-right:8px;color:rgb(102,102,102)">Booking reference ID:</s=
+pan>
+                                QGZ900436
+                            </td>
+                        </tr>
+                                   =20
+   =20
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <span style=3D"display:inline-block;font-weight=
+:600;padding-right:8px;color:rgb(102,102,102)">Date Request:</span>
+                                2026-03-31
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <span style=3D"display:inline-block;font-weight=
+:600;padding-right:8px;color:rgb(102,102,102)">Time Request:</span>
+                                NA
+                        </td>
+                    </tr>
+   =20
+                   =20
+   =20
+                   =20
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <span style=3D"display:inline-block;font-weight=
+:600;padding-right:8px;color:rgb(102,102,102)">Lead participant:</span>
+                                (MISS)Han Xin Ling
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <span style=3D"display:inline-block;font-weight=
+:600;padding-right:8px;color:rgb(102,102,102)">Country/region of passport:<=
+/span>
+                           =20
+                        </td>
+                    </tr>
+   =20
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <span style=3D"display:inline-block;font-weight=
+:600;padding-right:8px;color:rgb(102,102,102)">Participant:</span>
+                            1 x 3 hours (1-4 persons per group)
+                        </td>
+                    </tr>
+   =20
+   =20
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <span style=3D"display:inline-block;font-weight=
+:600;padding-right:8px;color:rgb(102,102,102)">Activity URL:</span>
+                            <a href=3D"https://click.klook.com/ls/click?upn=
+=3Du001.QPstsPdrjwzo-2FzalvlwHUQaSXSK1A-2FVe44bu3ibOQsLwrMuvmvPzYboD947Hv6v=
+pgqr1WQ4u8X5Si9E1M8CN8A-3D-3D3lhk_MP2S-2B0f8YZV5jQCnGBr2tgacUQh00UGRpp-2FU-=
+2BfeB7LbIO7eOS-2FQKMxA5KvaCtAUbiiCb6VdQDAv061AQDPYr3yBCNgcdpYXi8NQ6sP-2BFcS=
+VEMarHEmFYJh-2FIK0yk-2BmWNRYdE-2B7iTdPVDqdmGbi58LvU5vl0RhnKbI4PqFNXGi-2BzWY=
+Y-2FDyrMuNmMPyaeBzGadwdwnmdEqK5uhNg4bECwS5HGTluJ7XU4EKzV4GzJykTA-3D" rel=3D=
+"noreferrer noreferrer noreferrer noreferrer" target=3D"_blank">https://www=
+.klook.com/en-US/activity/15711</a>
+                        </td>
+                    </tr>
+   =20
+                   =20
+   =20
+                   =20
+   =20
+                   =20
+                    <tr>
+                        <td style=3D"border-top:1px solid rgb(238,238,238);=
+font-size:14px;line-height:1.7;padding-bottom:12px;padding-top:12px;vertica=
+l-align:top;word-break:break-word;color:rgb(51,51,51)">
+                            <h3 style=3D"font-size:14px;font-weight:600;lin=
+e-height:1.2;margin:0px;padding:0px;text-align:left;color:rgb(51,51,51)">Ex=
+tra Details</h3>
+                        </td>
+                    </tr>
+   =20
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">Email Address:</span=
+>
+                                        <a href=3D"mailto:hanxinling95@gmai=
+l.com" rel=3D"noreferrer noreferrer noreferrer noreferrer" target=3D"_blank=
+">hanxinling95@gmail.com</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">Number of Participan=
+ts:</span>
+                                        2
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">Preferred Snow Resor=
+t (if any):</span>
+                                        Iwappara
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">Preferred Participat=
+ion Time:</span>
+                                        9:00am
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">For April/May bookin=
+gs, limited resorts are available. The operator will email the location:</s=
+pan>
+                                        I agree
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">Ski/Snowboard:</span=
+>
+                                        Ski
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">For Customer Selecti=
+ng Chinese Lesson, Chinese Lesson is mostly full in peak season, would you =
+like to attend English Lesson if the Chinese Lesson is full?:</span>
+                                        No
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style=3D"border-top:1px solid rgb(238,2=
+38,238);font-size:14px;line-height:1.7;padding-bottom:16px;padding-top:16px=
+;vertical-align:top;word-break:break-word;color:rgb(51,51,51)">
+                                    <span style=3D"display:inline-block;fon=
+t-weight:600;padding-right:8px;color:rgb(102,102,102)">WhatsApp:</span>
+                                        +6581177581
+                                </td>
+                            </tr>
+   =20
+                </tbody></table>
+            </td>
+            <td style=3D"font-size:16px;vertical-align:top;width:16px"></td=
+>
+        </tr>
+    </tbody></table>
+
+<table cellpadding=3D"0" cellspacing=3D"0" style=3D"border-collapse:separat=
+e;width:100%">
+    <tbody><tr>
+        <td style=3D"font-size:16px;padding-bottom:12px;padding-top:16px;ve=
+rtical-align:top"><p style=3D"font-size:14px;font-weight:normal;line-height=
+:1.71;margin:0px;color:rgb(51,51,51)">To manage the order status or suggest=
+ amendments to the booking details</p></td>
+    </tr>
+    <tr>
+        <td style=3D"font-size:16px;vertical-align:top">
+           =20
+           =20
+            <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=
+=3D"border-collapse:separate;width:100%">
+                <tbody><tr>
+                    <td style=3D"border-radius:3px;font-size:16px;text-alig=
+n:center;vertical-align:top;background-color:rgb(32,114,247)">
+                        <a href=3D"https://merchant.klook.com/booking?booki=
+ng_reference_id=3DQGZ900436&amp;from=3Demail" title=3D"Confirm / Reject boo=
+kings" style=3D"display:block;font-size:16px;font-weight:600;line-height:58=
+px;margin:0px;text-align:center;text-decoration:none;color:rgb(255,255,255)=
+" rel=3D"noreferrer noreferrer noreferrer noreferrer" target=3D"_blank">Con=
+firm / Reject bookings</a>
+                    </td>
+                </tr>
+            </tbody></table>        </td>
+    </tr>
+    <tr>
+        <td style=3D"font-size:16px;padding-bottom:12px;padding-top:16px;ve=
+rtical-align:top">
+            <p style=3D"font-size:14px;font-weight:normal;line-height:1.71;=
+margin:0px;color:rgb(51,51,51)">Or follow the link below:
+            <a href=3D"https://click.klook.com/ls/click?upn=3Du001.QPstsPdr=
+jwzo-2FzalvlwHURVRSG-2Fi3vctWBPxRJviqRxemajJx1vT-2BiOtKgnrdi8y3wceCoLjNFQpY=
+vMnQh3iXwiTD3aptNNy5w4tgcAZ38TX4i8-2FyY7dDoKZfZqhAd0G2Qos_MP2S-2B0f8YZV5jQC=
+nGBr2tgacUQh00UGRpp-2FU-2BfeB7LbIO7eOS-2FQKMxA5KvaCtAUbiiCb6VdQDAv061AQDPYr=
+30SukAv44YMVjAjL6-2F8ucdIF3PYPBBPV35FcKqR5pyrj-2BGqM1cnKorKkVYPRw9Aa6MOXSBD=
+G0V0jFpaevpXrkDi75f2e3w-2Bx5kjkgSO07VlOKfczn5YsiTfGR06ThL1ELf-2FJqlpoN6Akwb=
+UyfAjqCaY-3D" rel=3D"noreferrer noreferrer noreferrer noreferrer" target=3D=
+"_blank">
+                https://merchant.klook.com/booking?booking_reference_id=3DQ=
+GZ900436&amp;from=3Demail
+            </a></p>
+        </td>
+    </tr>
+    <tr>
+        <td style=3D"font-size:16px;padding-bottom:12px;vertical-align:top"=
+><p style=3D"font-size:14px;font-weight:normal;line-height:1.71;margin:0px;=
+color:rgb(51,51,51)">To ensure your customer receives the best service, ple=
+ase get back to us within 12 hours.</p></td>
+    </tr>
+    <tr>
+        <td style=3D"font-size:16px;vertical-align:top">
+            <div style=3D"border:medium;border-radius:6px;padding:12px 20px=
+;background-color:rgb(252,243,222)">
+                <h3 style=3D"font-size:16px;font-weight:700;line-height:20p=
+x;margin:0px;padding:0px;color:rgb(51,51,51)">Confirmation policy</h3>
+                <ul style=3D"margin:8px 0px 0px">
+                    <li style=3D"font-size:12px;line-height:20px;color:rgb(=
+33,33,33)">Your confirmation deadline is before 2026-01-30 15:36 (local tim=
+e)</li>
+                    <li style=3D"font-size:12px;line-height:20px;color:rgb(=
+33,33,33)">If you don=E2=80=99t confirm by this deadline, the booking will =
+be automatically canceled. We=E2=80=99ll inform the customer to contact you=
+ for details, so please respond to customer inquiries promptly.</li>
+                    <li style=3D"font-size:12px;line-height:20px;color:rgb(=
+33,33,33)">If you cannot confirm this booking, please send an amendment req=
+uest or contact the customer to discuss alternatives</li>
+                    <li style=3D"font-size:12px;line-height:20px;color:rgb(=
+33,33,33)">Important: Multiple auto-canceled bookings will negatively impac=
+t your service performance. It may also lower your activity rankings and pl=
+atform visibility.</li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+</tbody></table>
+
+                                    </td>
+                                </tr>
+                            </tbody></table>
+                            <table cellpadding=3D"0" cellspacing=3D"0" styl=
+e=3D"border-collapse:separate;width:100%">
+                                <tbody><tr>
+                                   =20
+                                    <td style=3D"font-size:16px;padding-top=
+:16px;vertical-align:top"><p style=3D"font-size:14px;font-weight:normal;lin=
+e-height:1.71;margin:0px;color:rgb(51,51,51)">If you have any questions, pl=
+ease contact us at <a href=3D"mailto:merchant@klook.com" rel=3D"noreferrer =
+noreferrer noreferrer noreferrer" target=3D"_blank">merchant@klook.com</a>.=
+ We typically reply within 7 days, though response times may vary. Thank yo=
+u for your patience.</p></td>
+                                </tr>
+                                <tr>
+                                    <td style=3D"font-size:16px;padding-top=
+:30px;vertical-align:top"><h3 style=3D"font-size:16px;font-weight:600;line-=
+height:1.2;margin:0px;padding:0px;color:rgb(51,51,51)">Cheers, <br> Klook T=
+eam</h3></td>
+                                </tr>
+                                <tr><td style=3D"font-size:16px;padding-top=
+:16px;vertical-align:top"></td></tr>
+                            </tbody></table>
+                            <table border=3D"0" cellpadding=3D"0" cellspaci=
+ng=3D"0" style=3D"border-collapse:separate;width:100%">
+                                <tbody><tr><td style=3D"border-top:1px soli=
+d rgb(238,238,238);font-size:16px;padding-top:16px;vertical-align:top"></td=
+></tr>
+                                <tr>
+                                    <td style=3D"font-size:16px;vertical-al=
+ign:top"><p style=3D"font-size:14px;font-weight:normal;line-height:1.71;mar=
+gin:0px;color:rgb(153,153,153)">Email: <a href=3D"mailto:merchant@klook.com=
+" rel=3D"noreferrer noreferrer noreferrer noreferrer" target=3D"_blank">mer=
+chant@klook.com</a></p></td>
+                                </tr>
+                            </tbody></table>
+                        </td>
+                        <td style=3D"font-size:16px;vertical-align:top;widt=
+h:20px"></td>
+                    </tr>
+                </tbody></table>
+            </td>
+        </tr>
+    </tbody></table>
+<img src=3D"https://click.klook.com/wf/open?upn=3Du001.yp4Y8aJYiJopUkwHaIgP=
+H0oZc0UPUWnzcub7a-2FnFBuI9medS0xgSwSNmfM2x9zbOf4uYa6JcgEz5O0zSeSXUsB2zzmOXw=
+3IF8zOzgRWX7jBe-2Bi-2FdLkMrcQmM5ZurOLQuPKQ6hx85mQncuGla7TcnG9ggAD-2BFurcqW3=
+MUST-2F6CFPqyZP9dvgYcnO-2FrYBLxJdPDlFGCihI3XP966lVRHycGYwwoqaA-2FkOQvpjBIZr=
+XnCY-3D" alt=3D"" width=3D"1" height=3D"1" border=3D"0" style=3D"height:1px=
+;width:1px;border-width:0px;margin:0px;padding:0px"></div>
+
+</div></div></div>
+</blockquote></div></div>
+</blockquote></div></div>
+</blockquote></div>
+</blockquote></div>
+</blockquote></div>
+</div></div>
+</div>
+
+--00000000000010585d06547cac5e--

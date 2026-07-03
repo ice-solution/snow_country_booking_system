@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <title data-i18n-title="public.bookPageTitle">預約課程 - Snow Country</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/js/tailwind-brand.js"></script>
+  <link rel="stylesheet" href="/shared/css/brand.css">
+</head>
+<body class="bg-ink-50 text-ink-800 min-h-screen">
+  <header class="bg-ink-900 text-white border-b border-brand-500/30">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
+      <a href="/" class="flex items-center gap-2.5 font-bold">
+        <img src="/images/logo.png" alt="" class="h-8 w-8 object-contain">
+        Snow Country
+      </a>
+      <div class="flex items-center gap-3">
+        <div id="langSwitcher" class="flex gap-1 bg-ink-800 rounded-lg p-0.5"></div>
+        <span class="text-sm text-ink-300" data-i18n="public.bookHeading">預約課程</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10">
+    <div id="alert" class="hidden"></div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2">
+        <form id="bookingForm" class="bg-white rounded-2xl border shadow-sm p-6 md:p-8 space-y-6">
+          <h2 class="text-xl font-bold" data-i18n="public.lessonInfo">課程資料</h2>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5" data-i18n="public.resort">滑雪場 *</label>
+            <select name="resortLocation" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="" data-i18n="common.loading">載入中...</option>
+            </select>
+            <p class="text-xs text-slate-500 mt-1" data-i18n="public.resortHint">同地區滑雪場收費相同，請選擇實際上課雪場</p>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.lessonDate">上課日期 *</label>
+              <input name="lessonDate" type="date" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.duration">上課時數 *</label>
+              <select name="durationHours" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" id="durationSelect">
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.lessonType">課程類型 *</label>
+              <select name="lessonType" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+                <option value="ski" data-i18n="enum.ski">Ski 滑雪</option>
+                <option value="snowboard" data-i18n="enum.snowboard">Snowboard 單板</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.languagePref">語言偏好</label>
+              <select name="languagePref" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+                <option value="any" data-i18n="enum.any">不限</option>
+                <option value="zh" data-i18n="enum.zh">中文</option>
+                <option value="en" data-i18n="enum.en">英文</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.totalGuests">總人數 *</label>
+              <input name="totalGuests" type="number" min="1" value="1" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.childrenUnder6">6 歲以下小童人數</label>
+              <input name="childrenUnder6" type="number" min="0" value="0" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+              <p class="text-xs text-slate-500 mt-1" data-i18n="public.childrenHint">如有 2 位或以上 6 歲以下小童，需要 2 位教練</p>
+            </div>
+          </div>
+
+          <hr>
+
+          <h2 class="text-xl font-bold" data-i18n="public.contactInfo">聯絡資料</h2>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.guestName">聯絡人姓名 *</label>
+              <input name="guestName" type="text" required data-i18n-placeholder="public.guestNamePh" placeholder="你的名字" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.phone">電話 *</label>
+              <input name="phone" type="tel" required placeholder="9123 4567" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5" data-i18n="public.email">Email</label>
+            <input name="email" type="email" placeholder="your@email.com" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            <p class="text-xs text-slate-500 mt-1" data-i18n="public.emailHint">Required for online payment</p>
+          </div>
+
+          <h3 class="text-lg font-semibold pt-2" data-i18n="public.socialTitle">Social & messaging (optional)</h3>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.instagram">Instagram</label>
+              <input name="instagram" type="text" placeholder="@username" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.facebook">Facebook</label>
+              <input name="facebook" type="text" placeholder="facebook.com/..." class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.whatsapp">WhatsApp</label>
+              <input name="whatsapp" type="text" placeholder="+852..." class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.line">LINE ID</label>
+              <input name="line" type="text" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium mb-1.5" data-i18n="public.wechat">WeChat ID</label>
+              <input name="wechat" type="text" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5" data-i18n="public.specialRequests">特殊要求</label>
+            <textarea name="specialRequests" rows="3" data-i18n-placeholder="public.specialRequestsPh" placeholder="例如：希望中文教練、內地教練等" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none resize-none"></textarea>
+          </div>
+
+          <hr>
+
+          <h2 class="text-xl font-bold" data-i18n="public.payment">付款方式</h2>
+
+          <div class="space-y-3">
+            <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input type="radio" name="paymentMethod" value="on_site" id="paymentOnSite" checked class="mt-1">
+              <div>
+                <p class="font-medium" data-i18n="public.payOnSite">現場付款</p>
+                <p class="text-sm text-slate-500" data-i18n="public.payOnSiteDesc">上課當日現場付款，預約提交後待我們確認</p>
+              </div>
+            </label>
+            <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer hover:bg-slate-50 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input type="radio" name="paymentMethod" value="stripe" id="paymentStripe" class="mt-1">
+              <div>
+                <p class="font-medium"><span data-i18n="public.payStripe">線上付款（Stripe）</span><span id="stripeNote" class="text-sm text-slate-400 font-normal"></span></p>
+                <p class="text-sm text-slate-500" data-i18n="public.payStripeDesc">使用信用卡線上付款，安全快捷</p>
+              </div>
+            </label>
+          </div>
+
+          <div id="capacityNotice" class="hidden rounded-lg px-3 py-2 text-sm"></div>
+          <button type="submit" id="submitBtn" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3.5 rounded-xl transition shadow-md shadow-brand-500/20" data-i18n="public.submit">
+            提交預約
+          </button>
+        </form>
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl border shadow-sm p-6 sticky top-6">
+          <h3 class="font-bold text-lg mb-4" data-i18n="public.quoteTitle">費用摘要</h3>
+          <div id="quoteSummary">
+            <p class="text-slate-500" data-i18n="public.quoteEmpty">請填寫課程資料以查看預估費用</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border shadow-sm p-6">
+          <h3 class="font-bold mb-3" data-i18n="public.pricingTitle">價目表</h3>
+          <div id="pricingTable" class="text-sm text-slate-600"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/js/locales/zh.js"></script>
+  <script src="/shared/js/locales/en.js"></script>
+  <script src="/shared/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/book.js"></script>
+</body>
+</html>

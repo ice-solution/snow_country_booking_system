@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <title data-i18n-title="public.siteTitle">Snow Country 滑雪學校</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/js/tailwind-brand.js"></script>
+  <link rel="stylesheet" href="/shared/css/brand.css">
+</head>
+<body class="bg-ink-50 text-ink-800">
+  <header class="bg-ink-900 text-white border-b border-brand-500/30">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
+      <a href="/" class="flex items-center gap-3">
+        <img src="/images/logo.png" alt="Snow Country" class="h-10 w-10 object-contain">
+        <div>
+          <h1 class="text-lg font-bold tracking-wide">Snow Country</h1>
+          <p class="text-ink-300 text-xs" data-i18n="public.tagline">專業滑雪 · 單板教學</p>
+        </div>
+      </a>
+      <div class="flex items-center gap-3">
+        <div id="langSwitcher" class="flex gap-1 bg-ink-800 rounded-lg p-0.5"></div>
+        <a href="/book.html" class="bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition" data-i18n="public.bookNow">立即預約</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="bg-gradient-to-br from-ink-900 via-ink-800 to-black text-white relative overflow-hidden">
+      <div class="absolute inset-0 opacity-10 bg-[url('/images/logo.png')] bg-center bg-no-repeat bg-contain scale-150 pointer-events-none"></div>
+      <div class="max-w-5xl mx-auto px-6 py-20 text-center relative">
+        <img src="/images/logo.png" alt="" class="h-20 w-20 mx-auto mb-6 object-contain">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4" data-i18n="public.heroTitle">預約你的滑雪課程</h2>
+        <p class="text-ink-200 text-lg max-w-2xl mx-auto mb-8" data-i18n="public.heroDesc">
+          選擇日期與上課時數，我們的專業教練團隊為你安排最合適的課堂。支援 Ski 滑雪及 Snowboard 單板。
+        </p>
+        <a href="/book.html" class="inline-block bg-brand-500 hover:bg-brand-600 text-white px-8 py-3.5 rounded-xl text-lg font-semibold transition shadow-lg shadow-brand-500/25" data-i18n="public.startBooking">
+          開始預約
+        </a>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 py-16">
+      <h3 class="text-2xl font-bold text-center mb-10 text-ink-900" data-i18n="public.flowTitle">預約流程</h3>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center p-6">
+          <div class="w-12 h-12 bg-brand-50 text-brand-600 border border-brand-200 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">1</div>
+          <h4 class="font-semibold mb-2" data-i18n="public.flow1Title">填寫預約資料</h4>
+          <p class="text-ink-500 text-sm" data-i18n="public.flow1Desc">選擇日期、上課時數（3–6 小時）、課程類型及人數</p>
+        </div>
+        <div class="text-center p-6">
+          <div class="w-12 h-12 bg-brand-50 text-brand-600 border border-brand-200 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
+          <h4 class="font-semibold mb-2" data-i18n="public.flow2Title">選擇付款方式</h4>
+          <p class="text-ink-500 text-sm" data-i18n="public.flow2Desc">線上信用卡付款（Stripe）或選擇現場付款</p>
+        </div>
+        <div class="text-center p-6">
+          <div class="w-12 h-12 bg-brand-50 text-brand-600 border border-brand-200 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">3</div>
+          <h4 class="font-semibold mb-2" data-i18n="public.flow3Title">等待確認</h4>
+          <p class="text-ink-500 text-sm" data-i18n="public.flow3Desc">我們會審核你的預約並安排教練，確認後通知你</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white border-y border-ink-100">
+      <div class="max-w-5xl mx-auto px-6 py-16">
+        <h3 class="text-2xl font-bold text-center mb-10 text-ink-900" data-i18n="public.infoTitle">課程資訊</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="border border-ink-100 rounded-xl p-6 hover:border-brand-200 transition">
+            <h4 class="font-semibold text-lg mb-3 text-brand-600" data-i18n="public.skiTitle">⛷ Ski 滑雪</h4>
+            <p class="text-ink-500 text-sm" data-i18n="public.skiDesc">適合初學者至進階學員，雙板滑雪技術教學。</p>
+          </div>
+          <div class="border border-ink-100 rounded-xl p-6 hover:border-brand-200 transition">
+            <h4 class="font-semibold text-lg mb-3 text-brand-600" data-i18n="public.sbTitle">🏂 Snowboard 單板</h4>
+            <p class="text-ink-500 text-sm" data-i18n="public.sbDesc">單板滑雪入門及進階技巧，由專業教練一對一指導。</p>
+          </div>
+        </div>
+        <p class="text-center text-sm text-ink-400 mt-8">
+          <span data-i18n="public.infoNote">課程時數：3 / 4 / 5 / 6 小時 · 套票適用 1–4 人 · 5 人以上或特殊情況配 2 位教練</span><br>
+          <span data-i18n="public.infoNote2">價格以日圓（¥）計算，含教練費及基本保險，不含纜車票及裝備租借</span>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-ink-900 text-ink-400 text-center py-8 text-sm border-t border-brand-500/20">
+    <img src="/images/logo.png" alt="" class="h-8 w-8 mx-auto mb-3 opacity-80">
+    <p><span data-i18n="public.footer">Snow Country 滑雪學校</span> · <a href="/admin" class="hover:text-brand-400 transition" data-i18n="public.staffLogin">職員登入</a></p>
+  </footer>
+
+  <script src="/shared/js/locales/zh.js"></script>
+  <script src="/shared/js/locales/en.js"></script>
+  <script src="/shared/js/i18n.js"></script>
+  <script>
+    i18n.init('zh');
+    i18n.mountLangSwitcher('langSwitcher', { dark: true });
+  </script>
+</body>
+</html>

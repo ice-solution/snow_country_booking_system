@@ -1,0 +1,28 @@
+{
+  "name": "snow-country-booking-system",
+  "version": "1.0.0",
+  "description": "滑雪學校預約管理系統 - Phase 1",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node scripts/seed.js"
+  },
+  "keywords": [
+    "ski",
+    "booking",
+    "express",
+    "mongodb"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.9.3",
+    "morgan": "^1.10.0",
+    "stripe": "^17.7.0"
+  }
+}

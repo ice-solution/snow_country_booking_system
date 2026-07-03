@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <title data-i18n-title="guest.pageTitle">Guest details - Snow Country</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/js/tailwind-brand.js"></script>
+  <link rel="stylesheet" href="/shared/css/brand.css">
+</head>
+<body class="bg-ink-50 text-ink-800 min-h-screen">
+  <header class="bg-ink-900 text-white border-b border-brand-500/30">
+    <div class="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="/" class="flex items-center gap-2.5 font-bold">
+        <img src="/images/logo.png" alt="" class="h-8 w-8 object-contain">
+        Snow Country
+      </a>
+      <div id="langSwitcher" class="flex gap-1 bg-ink-800 rounded-lg p-0.5"></div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-10">
+    <div id="content">
+      <p class="text-center text-ink-400 py-16" data-i18n="common.loading">Loading...</p>
+    </div>
+  </main>
+
+  <script src="/shared/js/locales/zh.js"></script>
+  <script src="/shared/js/locales/en.js"></script>
+  <script src="/shared/js/i18n.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/guest.js"></script>
+</body>
+</html>

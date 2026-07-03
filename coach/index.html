@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <title data-i18n-title="coach.title">教練課表 - Snow Country</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/js/tailwind-brand.js"></script>
+  <link rel="stylesheet" href="/shared/css/brand.css">
+</head>
+<body class="bg-ink-50 min-h-screen">
+  <header class="bg-ink-900 text-white px-4 py-4 flex justify-between items-start gap-4 border-b border-brand-500/30">
+    <div class="flex items-center gap-3">
+      <img src="/images/logo.png" alt="" class="h-9 w-9 object-contain">
+      <div>
+        <h1 class="text-lg font-bold" data-i18n="coach.title">Snow Country 教練課表</h1>
+        <p id="coachName" class="text-sm text-ink-300 mt-0.5" data-i18n="common.loading">載入中...</p>
+      </div>
+    </div>
+    <div id="langSwitcher" class="flex gap-1 bg-ink-800 rounded-lg p-0.5"></div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4 space-y-4">
+    <div class="flex flex-wrap gap-3 items-center bg-white rounded-xl border border-ink-100 p-4">
+      <label class="text-sm"><span data-i18n="coach.selectCoach">選擇教練</span>
+        <select id="coachSelect" class="ml-2 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"></select>
+      </label>
+      <label class="text-sm"><span data-i18n="coach.date">日期</span>
+        <input type="date" id="dateInput" class="ml-2 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+      </label>
+      <button id="refreshBtn" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm transition" data-i18n="common.refresh">重新整理</button>
+    </div>
+
+    <div id="legend" class="flex flex-wrap gap-2 text-xs"></div>
+    <div id="gantt" class="bg-white rounded-xl border border-ink-100 overflow-x-auto"></div>
+    <div id="upcoming" class="bg-white rounded-xl border border-ink-100 p-4"></div>
+
+    <div class="bg-white rounded-xl border border-ink-100 p-4">
+      <h2 class="font-semibold mb-3" data-i18n="coach.leaveRequest">Request leave</h2>
+      <form id="leaveForm" class="grid sm:grid-cols-2 gap-3">
+        <label class="text-sm block">
+          <span data-i18n="coach.leaveDate">Leave date</span>
+          <input type="date" name="leaveDate" required class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+        </label>
+        <fieldset class="text-sm sm:col-span-2">
+          <legend class="mb-1" data-i18n="admin.leavePeriod">Leave period</legend>
+          <label class="mr-4"><input type="radio" name="leavePeriod" value="full" checked> <span data-i18n="admin.leaveFullDay">Full day</span></label>
+          <label class="mr-4"><input type="radio" name="leavePeriod" value="half_am"> <span data-i18n="admin.leaveHalfAm">Half day AM (09:00–12:00)</span></label>
+          <label><input type="radio" name="leavePeriod" value="half_pm"> <span data-i18n="admin.leaveHalfPm">Half day PM (13:00–16:00)</span></label>
+        </fieldset>
+        <label class="text-sm block sm:col-span-2">
+          <span data-i18n="coach.leaveReason">Reason</span>
+          <input type="text" name="leaveReason" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+        </label>
+        <button type="submit" class="sm:col-span-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm w-fit" data-i18n="coach.submitLeave">Submit request</button>
+      </form>
+      <p id="leaveMsg" class="text-sm mt-2 hidden"></p>
+    </div>
+  </main>
+
+  <script src="/shared/js/locales/zh.js"></script>
+  <script src="/shared/js/locales/en.js"></script>
+  <script src="/shared/js/i18n.js"></script>
+  <script src="/coach/js/app.js"></script>
+</body>
+</html>
