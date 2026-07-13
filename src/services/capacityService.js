@@ -1,15 +1,10 @@
 const Booking = require('../models/Booking');
-const Coach = require('../models/Coach');
+const Instructor = require('../models/Instructor');
 const { normalizeDate } = require('./scheduleService');
 const { isCoachOnFullDayLeave } = require('../utils/leavePeriods');
+const { mongoOverlapsDay } = require('../utils/lessonDateRange');
 
 const ACTIVE_STATUSES = ['pending', 'confirmed', 'assigned', 'needs_attention'];
-
-function isSameDay(a, b) {
-  const d1 = normalizeDate(a);
-  const d2 = normalizeDate(b);
-  return d1.getTime() === d2.getTime();
-}
 
 function coachAvailableOnDate(coach, date) {
   return !isCoachOnFullDayLeave(coach, date);
@@ -17,19 +12,18 @@ function coachAvailableOnDate(coach, date) {
 
 async function getDailyCapacity(date, { headOnly = false } = {}) {
   const targetDate = normalizeDate(date);
-  const nextDay = new Date(targetDate.getTime() + 86400000);
 
   const coachFilter = { active: true };
   if (headOnly) coachFilter.isHeadCoach = true;
 
-  const coaches = await Coach.find(coachFilter);
+  const coaches = await Instructor.find(coachFilter);
   const availableCoaches = coaches.filter((c) => coachAvailableOnDate(c, targetDate));
 
   const supply = availableCoaches.reduce((sum, c) => sum + (c.maxDailyLessons || 2), 0);
 
   const bookings = await Booking.find({
     status: { $in: ACTIVE_STATUSES },
-    lessonDate: { $gte: targetDate, $lt: nextDay },
+    ...mongoOverlapsDay(targetDate),
   });
 
   const demand = bookings.reduce((sum, b) => sum + (b.coachesRequired || 1), 0);

@@ -1,5 +1,5 @@
 const { body, param, query } = require('express-validator');
-const Coach = require('../models/Coach');
+const Instructor = require('../models/Instructor');
 
 const coachValidators = {
   create: [

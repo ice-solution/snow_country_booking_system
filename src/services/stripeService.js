@@ -23,6 +23,7 @@ function getBaseUrl(req) {
 }
 
 const { getResort, getPricingRegion } = require('../config/resorts');
+const { formatLessonDateRange } = require('../utils/lessonDateRange');
 
 function toStripeAmount(amount, currency) {
   const zeroDecimal = ['jpy', 'krw', 'vnd'];
@@ -57,7 +58,7 @@ async function createCheckoutSession(booking, req) {
           unit_amount: toStripeAmount(booking.totalAmount, currency),
           product_data: {
             name: `Snow Country 滑雪課程 - ${lessonTypeLabel}`,
-            description: `${regionLabel} · ${booking.durationHours} 小時 · ${booking.totalGuests} 人 · ${new Date(booking.lessonDate).toLocaleDateString('zh-HK')}`,
+            description: `${regionLabel} · ${booking.durationHours} 小時 · ${booking.totalGuests} 人 · ${formatLessonDateRange(booking, 'zh-HK')}`,
           },
         },
         quantity: 1,

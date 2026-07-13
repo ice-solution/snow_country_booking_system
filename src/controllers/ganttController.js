@@ -2,10 +2,10 @@ const ganttService = require('../services/ganttService');
 
 async function getGantt(req, res, next) {
   try {
-    const { date, coachId, headOnly } = req.query;
+    const { date, instructorId, headOnly } = req.query;
     const data = await ganttService.getGantt({
       date,
-      coachId,
+      instructorId: instructorId || req.query.coachId,
       headOnly: headOnly === 'true' || headOnly === '1',
     });
     res.json({ success: true, data });
@@ -14,28 +14,28 @@ async function getGantt(req, res, next) {
   }
 }
 
-async function getCoachSchedule(req, res, next) {
+async function getInstructorSchedule(req, res, next) {
   try {
     const { id } = req.params;
     const { from, to } = req.query;
-    const data = await ganttService.getCoachSchedule(id, { from, to });
+    const data = await ganttService.getInstructorSchedule(id, { from, to });
     res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
 }
 
-async function getCoachGanttView(req, res, next) {
+async function getInstructorGanttView(req, res, next) {
   try {
-    const { coachId } = req.params;
+    const instructorId = req.instructorId;
     const { date } = req.query;
-    const schedule = await ganttService.getCoachSchedule(coachId, { from: date, to: date });
-    const gantt = await ganttService.getGantt({ date, coachId });
+    const schedule = await ganttService.getInstructorSchedule(instructorId, { from: date, to: date });
+    const gantt = await ganttService.getGantt({ date, instructorId });
     const leaveBlocks = gantt.rows[0]?.leaveBlocks || [];
     res.json({
       success: true,
       data: {
-        coach: schedule.coach,
+        instructor: schedule.instructor,
         gantt: {
           date: gantt.date,
           timeSlots: gantt.timeSlots,
@@ -51,4 +51,30 @@ async function getCoachGanttView(req, res, next) {
   }
 }
 
-module.exports = { getGantt, getCoachSchedule, getCoachGanttView };
+async function getInstructorScheduleView(req, res, next) {
+  try {
+    const { from, to } = req.query;
+    const data = await ganttService.getInstructorSchedule(req.instructorId, { from, to });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getInstructorDayOverview(req, res, next) {
+  try {
+    const { date } = req.query;
+    const data = await ganttService.getGantt({ date });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  getGantt,
+  getInstructorSchedule,
+  getInstructorGanttView,
+  getInstructorScheduleView,
+  getInstructorDayOverview,
+};

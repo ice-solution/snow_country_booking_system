@@ -48,8 +48,8 @@ function isCoachOnFullDayLeave(coach, date) {
   return getBlocksForDate(coach, date).some((block) => normalizePeriod(block.period) === 'full');
 }
 
-function isCoachBlockedForBooking(coach, booking) {
-  const blocks = getBlocksForDate(coach, booking.lessonDate);
+function isCoachBlockedForBookingOnDate(coach, booking, date) {
+  const blocks = getBlocksForDate(coach, date);
   if (!blocks.length) return false;
 
   for (const block of blocks) {
@@ -59,6 +59,11 @@ function isCoachBlockedForBooking(coach, booking) {
     if (slot && lessonOverlapsWindow(booking, slot.start, slot.end)) return true;
   }
   return false;
+}
+
+function isCoachBlockedForBooking(coach, booking) {
+  const { getLessonDays } = require('./lessonDateRange');
+  return getLessonDays(booking).some((day) => isCoachBlockedForBookingOnDate(coach, booking, day));
 }
 
 function leavePeriodToGanttBlock(period, totalSlots) {
@@ -99,6 +104,7 @@ module.exports = {
   lessonOverlapsWindow,
   isCoachOnFullDayLeave,
   isCoachBlockedForBooking,
+  isCoachBlockedForBookingOnDate,
   getBlocksForDate,
   getLeaveBlocksForCoach,
   leavePeriodLabel,

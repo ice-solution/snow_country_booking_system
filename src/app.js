@@ -28,7 +28,8 @@ function createApp() {
 
   app.use('/shared', express.static(path.join(__dirname, '../shared')));
   app.use('/admin', express.static(path.join(__dirname, '../admin')));
-  app.use('/coach', express.static(path.join(__dirname, '../coach')));
+  app.use('/instructor', express.static(path.join(__dirname, '../instructor')));
+  app.use('/coach', express.static(path.join(__dirname, '../instructor')));
   app.use(express.static(path.join(__dirname, '../public')));
 
   app.get('/api', (req, res) => {

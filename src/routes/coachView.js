@@ -1,5 +1,5 @@
 const express = require('express');
-const Coach = require('../models/Coach');
+const Instructor = require('../models/Instructor');
 const ganttController = require('../controllers/ganttController');
 const { body } = require('express-validator');
 const { normalizePeriod } = require('../utils/leavePeriods');
@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.get('/coaches', async (req, res, next) => {
   try {
-    const coaches = await Coach.find({ active: true }).select('name specialties isHeadCoach').sort({ name: 1 });
+    const coaches = await Instructor.find({ active: true }).select('name specialties isHeadCoach').sort({ name: 1 });
     res.json({ success: true, data: coaches });
   } catch (err) {
     next(err);
@@ -25,7 +25,7 @@ router.post(
   validate,
   async (req, res, next) => {
     try {
-      const coach = await Coach.findById(req.params.coachId);
+      const coach = await Instructor.findById(req.params.coachId);
       if (!coach || !coach.active) {
         return res.status(404).json({ success: false, message: 'Coach not found' });
       }

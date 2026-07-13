@@ -1,0 +1,61 @@
+{
+  "name": "Snow Country WhatsApp Adapter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET,POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "8fc7afdb-8876-4c84-a91e-71e8d11c7db3",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "711a0ada-ea00-4f08-bcb9-45c5abc81b25"
+    },
+    {
+      "parameters": {
+        "jsCode": "const token = $env.WHATSAPP_ACCESS_TOKEN || '';\nconst phoneId = $env.WHATSAPP_PHONE_NUMBER_ID || '';\nconst verifyToken = $env.WHATSAPP_VERIFY_TOKEN || 'snowcountry';\nconst coreUrl = ($env.SNOW_COUNTRY_N8N_CORE_URL || '').replace(/\\/$/, '');\n\nconst method = $request.method || 'POST';\nconst query = $request.query || {};\n\nif (method === 'GET') {\n  const mode = query['hub.mode'];\n  const challenge = query['hub.challenge'];\n  const tokenQ = query['hub.verify_token'];\n  if (mode === 'subscribe' && tokenQ === verifyToken) {\n    return [{ json: { statusCode: 200, body: challenge, raw: true } }];\n  }\n  return [{ json: { statusCode: 403, body: 'Forbidden', raw: true } }];\n}\n\nconst body = $json.body ?? $json;\nconst entry = body.entry?.[0];\nconst changes = entry?.changes?.[0];\nconst value = changes?.value;\nconst messages = value?.messages || [];\n\nconst outputs = [];\nfor (const msg of messages) {\n  if (msg.type !== 'text') continue;\n  const userId = msg.from;\n  const text = msg.text?.body || '';\n\n  const coreRes = await fetch(coreUrl, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ channel: 'whatsapp', userId, message: text }),\n  });\n  const core = await coreRes.json();\n  const replyText = core.replyText || '系統繁忙，請稍後再試。';\n\n  if (token && phoneId) {\n    await fetch('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + token,\n      },\n      body: JSON.stringify({\n        messaging_product: 'whatsapp',\n        to: userId,\n        type: 'text',\n        text: { body: replyText },\n      }),\n    });\n  }\n  outputs.push({ json: { userId, replyText } });\n}\n\nif (!outputs.length) outputs.push({ json: { ok: true } });\nreturn outputs;\n"
+      },
+      "id": "e2fa0d7b-67e9-45df-b247-58a59cbe6aff",
+      "name": "WhatsApp Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "snow-country"
+    }
+  ]
+}

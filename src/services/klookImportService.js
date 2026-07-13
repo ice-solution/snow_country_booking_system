@@ -48,10 +48,13 @@ async function createBookingFromKlookEmail(input) {
     coachesRequired
   );
 
+  const lessonDate = normalizeLessonDate(parsed.lessonDate);
   const booking = await Booking.create(
     await catalogService.applyResortToBooking({
       ...parsed,
-      lessonDate: normalizeLessonDate(parsed.lessonDate),
+      lessonDateFrom: lessonDate,
+      lessonDateTo: lessonDate,
+      lessonDate,
       coachesRequired,
       totalAmount: pricing.totalAmount,
       currency: pricing.currency,

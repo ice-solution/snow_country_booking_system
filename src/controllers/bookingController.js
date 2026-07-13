@@ -4,25 +4,22 @@ const catalogService = require('../services/catalogService');
 const pricingConfigService = require('../services/pricingConfigService');
 const assignmentService = require('../services/assignmentService');
 const { getGuestSummaryById } = require('../services/guestSummaryService');
-
-function normalizeLessonDate(dateInput) {
-  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-    const [year, month, day] = dateInput.split('-').map(Number);
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
-  }
-  const date = new Date(dateInput);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
+const {
+  parseLessonDateRange,
+  mongoOverlapsRange,
+  getLessonDayCount,
+} = require('../utils/lessonDateRange');
 
 async function buildBookingPayload(body) {
   const totalGuests = Number(body.totalGuests);
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
   const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
+  const dateRange = parseLessonDateRange(body);
+  const dayCount = dateRange.lessonDayCount;
 
   const payload = {
     ...body,
-    lessonDate: normalizeLessonDate(body.lessonDate),
+    ...dateRange,
     totalGuests,
     childrenUnder6,
     coachesRequired,
@@ -34,7 +31,7 @@ async function buildBookingPayload(body) {
       Number(body.durationHours),
       coachesRequired
     );
-    payload.totalAmount = pricing.totalAmount;
+    payload.totalAmount = pricing.totalAmount * dayCount;
     payload.currency = pricing.currency;
     if (!payload.region) payload.region = pricing.region;
   }
@@ -50,18 +47,15 @@ async function listBookings(req, res, next) {
     if (status) filter.status = status;
     if (source) filter.source = source;
     if (from || to) {
-      filter.lessonDate = {};
-      if (from) filter.lessonDate.$gte = normalizeLessonDate(from);
-      if (to) {
-        const end = normalizeLessonDate(to);
-        end.setHours(23, 59, 59, 999);
-        filter.lessonDate.$lte = end;
-      }
+      Object.assign(
+        filter,
+        mongoOverlapsRange(from || to, to || from)
+      );
     }
 
     const bookings = await Booking.find(filter)
       .populate('assignedCoaches.coach', 'name phone specialties')
-      .sort({ lessonDate: 1, createdAt: -1 });
+      .sort({ lessonDateFrom: 1, createdAt: -1 });
 
     res.json({ success: true, data: bookings });
   } catch (err) {
@@ -219,7 +213,7 @@ async function markNeedsAttention(req, res, next) {
   }
 }
 
-async function suggestCoaches(req, res, next) {
+async function suggestInstructors(req, res, next) {
   try {
     const forReassign = req.query.forReassign === 'true' || req.query.forReassign === '1';
     const result = await assignmentService.suggestCoachesForBooking(req.params.id, {
@@ -231,12 +225,13 @@ async function suggestCoaches(req, res, next) {
   }
 }
 
-async function assignCoaches(req, res, next) {
+async function assignInstructors(req, res, next) {
   try {
-    const { coachIds, assignedBy } = req.body;
+    const instructorIds = req.body.instructorIds || req.body.coachIds;
+    const { assignedBy } = req.body;
     const booking = await assignmentService.assignCoaches(
       req.params.id,
-      coachIds,
+      instructorIds,
       assignedBy || 'manual'
     );
     res.json({ success: true, data: booking });
@@ -245,15 +240,16 @@ async function assignCoaches(req, res, next) {
   }
 }
 
-async function reassignCoaches(req, res, next) {
+async function reassignInstructors(req, res, next) {
   try {
-    const { coachIds, assignedBy } = req.body;
+    const instructorIds = req.body.instructorIds || req.body.coachIds;
+    const { assignedBy } = req.body;
     const booking = await assignmentService.reassignCoaches(
       req.params.id,
-      coachIds,
+      instructorIds,
       assignedBy || 'manual'
     );
-    res.json({ success: true, data: booking, message: 'Coach assignment updated' });
+    res.json({ success: true, data: booking, message: 'Instructor assignment updated' });
   } catch (err) {
     next(err);
   }
@@ -298,28 +294,28 @@ async function completeBooking(req, res, next) {
   }
 }
 
-async function calculateCoaches(req, res) {
+async function calculateInstructors(req, res) {
   const { totalGuests, childrenUnder6 } = req.body;
-  const coachesRequired = calculateCoachesRequired(
+  const instructorsRequired = calculateCoachesRequired(
     Number(totalGuests),
     Number(childrenUnder6 || 0)
   );
-  res.json({ success: true, data: { coachesRequired } });
+  res.json({ success: true, data: { instructorsRequired } });
 }
 
-async function autoAssignCoaches(req, res, next) {
+async function autoAssignInstructors(req, res, next) {
   try {
     const booking = await assignmentService.autoAssignCoaches(req.params.id);
-    res.json({ success: true, data: booking, message: 'Coaches assigned automatically' });
+    res.json({ success: true, data: booking, message: 'Instructors assigned automatically' });
   } catch (err) {
     next(err);
   }
 }
 
-async function autoReassignCoaches(req, res, next) {
+async function autoReassignInstructors(req, res, next) {
   try {
     const booking = await assignmentService.autoReassignCoaches(req.params.id);
-    res.json({ success: true, data: booking, message: 'Coaches reassigned automatically' });
+    res.json({ success: true, data: booking, message: 'Instructors reassigned automatically' });
   } catch (err) {
     next(err);
   }
@@ -335,11 +331,11 @@ module.exports = {
   cancelBooking,
   markNeedsAttention,
   resolveBooking,
-  suggestCoaches,
-  assignCoaches,
-  reassignCoaches,
-  autoAssignCoaches,
-  autoReassignCoaches,
-  calculateCoaches,
+  suggestInstructors,
+  assignInstructors,
+  reassignInstructors,
+  autoAssignInstructors,
+  autoReassignInstructors,
+  calculateInstructors,
   completeBooking,
 };

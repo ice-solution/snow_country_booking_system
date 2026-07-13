@@ -1,4 +1,5 @@
 const Booking = require('../models/Booking');
+const { getLessonDayCount } = require('../utils/lessonDateRange');
 
 function toGuestSummary(booking) {
   return {
@@ -13,7 +14,10 @@ function toGuestSummary(booking) {
     wechat: booking.wechat || '',
     languagePref: booking.languagePref,
     specialRequests: booking.specialRequests || '',
-    lessonDate: booking.lessonDate,
+    lessonDateFrom: booking.lessonDateFrom || booking.lessonDate,
+    lessonDateTo: booking.lessonDateTo || booking.lessonDateFrom || booking.lessonDate,
+    lessonDate: booking.lessonDateFrom || booking.lessonDate,
+    lessonDayCount: getLessonDayCount(booking),
     lessonStartTime: booking.lessonStartTime || '09:00',
     durationHours: booking.durationHours,
     resortLocation: booking.resortLocation,
@@ -21,10 +25,10 @@ function toGuestSummary(booking) {
     lessonType: booking.lessonType,
     totalGuests: booking.totalGuests,
     childrenUnder6: booking.childrenUnder6,
-    coachesRequired: booking.coachesRequired,
+    instructorsRequired: booking.coachesRequired,
     source: booking.source,
     status: booking.status,
-    assignedCoaches: (booking.assignedCoaches || [])
+    assignedInstructors: (booking.assignedCoaches || [])
       .map((a) => a.coach?.name)
       .filter(Boolean),
   };
@@ -43,9 +47,9 @@ async function getGuestSummaryById(bookingId) {
   return toGuestSummary(booking);
 }
 
-async function getGuestSummaryForCoach(bookingId, coachId) {
-  if (!coachId) {
-    const error = new Error('coachId is required');
+async function getGuestSummaryForInstructor(bookingId, instructorId) {
+  if (!instructorId) {
+    const error = new Error('instructorId is required');
     error.status = 400;
     throw error;
   }
@@ -62,11 +66,11 @@ async function getGuestSummaryForCoach(bookingId, coachId) {
 
   const isAssigned = (booking.assignedCoaches || []).some((a) => {
     const id = a.coach?._id?.toString() || a.coach?.toString();
-    return id === coachId;
+    return id === instructorId;
   });
 
   if (!isAssigned) {
-    const error = new Error('This lesson is not assigned to the selected coach');
+    const error = new Error('This lesson is not assigned to the selected instructor');
     error.status = 403;
     throw error;
   }
@@ -74,4 +78,9 @@ async function getGuestSummaryForCoach(bookingId, coachId) {
   return toGuestSummary(booking);
 }
 
-module.exports = { toGuestSummary, getGuestSummaryById, getGuestSummaryForCoach };
+module.exports = {
+  toGuestSummary,
+  getGuestSummaryById,
+  getGuestSummaryForInstructor,
+  getGuestSummaryForCoach: getGuestSummaryForInstructor,
+};

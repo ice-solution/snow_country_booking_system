@@ -1,16 +1,16 @@
 const express = require('express');
-const coachesRouter = require('./coaches');
+const instructorsRouter = require('./instructors');
 const bookingsRouter = require('./bookings');
 const websiteRouter = require('./website');
 const alertsRouter = require('./alerts');
 const scheduleRouter = require('./schedule');
 const ganttRouter = require('./gantt');
 const integrationsRouter = require('./integrations');
-const coachViewRouter = require('./coachView');
+const instructorViewRouter = require('./instructorView');
 const pricingRouter = require('./pricing');
 const capacityRouter = require('./capacity');
 const resortsRouter = require('./resorts');
-const Coach = require('../models/Coach');
+const Instructor = require('../models/Instructor');
 const Booking = require('../models/Booking');
 const catalogService = require('../services/catalogService');
 
@@ -29,9 +29,9 @@ router.get('/meta', async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        specialties: Coach.SPECIALTIES,
-        languages: Coach.LANGUAGES,
-        heatLevels: Coach.HEAT_LEVELS,
+        specialties: Instructor.SPECIALTIES,
+        languages: Instructor.LANGUAGES,
+        heatLevels: Instructor.HEAT_LEVELS,
         bookingSources: Booking.BOOKING_SOURCES,
         bookingStatuses: Booking.BOOKING_STATUSES,
         lessonTypes: Booking.LESSON_TYPES,
@@ -50,7 +50,7 @@ router.get('/meta', async (req, res, next) => {
   }
 });
 
-router.use('/coaches', coachesRouter);
+router.use('/instructors', instructorsRouter);
 router.use('/bookings', bookingsRouter);
 router.use('/website', websiteRouter);
 router.use('/alerts', alertsRouter);
@@ -60,6 +60,6 @@ router.use('/integrations', integrationsRouter);
 router.use('/pricing', pricingRouter);
 router.use('/capacity', capacityRouter);
 router.use('/resorts', resortsRouter);
-router.use('/coach-view', coachViewRouter);
+router.use('/instructor-view', instructorViewRouter);
 
 module.exports = router;

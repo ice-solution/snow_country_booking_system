@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { syncBookingLessonDates } = require('../utils/lessonDateRange');
 
 const BOOKING_SOURCES = ['website', 'klook', 'whatsapp', 'line', 'webchat', 'admin'];
 const BOOKING_STATUSES = [
@@ -17,7 +18,7 @@ const PAYMENT_STATUSES = ['unpaid', 'paid_online', 'pay_on_site', 'paid_on_site'
 
 const assignedCoachSchema = new mongoose.Schema(
   {
-    coach: { type: mongoose.Schema.Types.ObjectId, ref: 'Coach', required: true },
+    coach: { type: mongoose.Schema.Types.ObjectId, ref: 'Instructor', required: true },
     assignmentScore: { type: Number },
     assignedBy: { type: String, default: 'manual' },
     assignedAt: { type: Date, default: Date.now },
@@ -30,6 +31,8 @@ const bookingSchema = new mongoose.Schema(
     source: { type: String, enum: BOOKING_SOURCES, default: 'website' },
     status: { type: String, enum: BOOKING_STATUSES, default: 'pending' },
 
+    lessonDateFrom: { type: Date, required: true },
+    lessonDateTo: { type: Date, required: true },
     lessonDate: { type: Date, required: true },
     durationHours: { type: Number, enum: DURATION_HOURS, required: true },
     region: { type: String, required: true, trim: true },
@@ -69,17 +72,56 @@ const bookingSchema = new mongoose.Schema(
     confirmedBy: { type: String },
     adminNotes: { type: String, trim: true },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret) {
+        ret.instructorsRequired = ret.coachesRequired;
+        delete ret.coachesRequired;
+        if (Array.isArray(ret.assignedCoaches)) {
+          ret.assignedInstructors = ret.assignedCoaches.map((a) => ({
+            instructor: a.coach,
+            assignmentScore: a.assignmentScore,
+            assignedBy: a.assignedBy,
+            assignedAt: a.assignedAt,
+          }));
+          delete ret.assignedCoaches;
+        }
+        if (ret.lessonDateFrom && ret.lessonDateTo) {
+          const from = new Date(ret.lessonDateFrom);
+          const to = new Date(ret.lessonDateTo);
+          from.setHours(0, 0, 0, 0);
+          to.setHours(0, 0, 0, 0);
+          ret.lessonDayCount = Math.round((to - from) / 86400000) + 1;
+        }
+        return ret;
+      },
+    },
+  }
 );
 
-bookingSchema.index({ status: 1, lessonDate: 1 });
+bookingSchema.index({ status: 1, lessonDateFrom: 1 });
+bookingSchema.index({ lessonDateFrom: 1, lessonDateTo: 1 });
 bookingSchema.index({ lessonDate: 1 });
 
-bookingSchema.pre('validate', async function syncRegionFromResort() {
-  const catalogService = require('../services/catalogService');
-  if (this.resortLocation) {
-    const resort = await catalogService.getResort(this.resortLocation);
-    if (resort) this.region = resort.region;
+bookingSchema.post('init', function hydrateLessonDateRange() {
+  syncBookingLessonDates(this);
+});
+
+bookingSchema.pre('validate', async function validateLessonDates(next) {
+  try {
+    syncBookingLessonDates(this);
+    if (this.lessonDateTo < this.lessonDateFrom) {
+      return next(new Error('lessonDateTo must be on or after lessonDateFrom'));
+    }
+    const catalogService = require('../services/catalogService');
+    if (this.resortLocation) {
+      const resort = await catalogService.getResort(this.resortLocation);
+      if (resort) this.region = resort.region;
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
 });
 

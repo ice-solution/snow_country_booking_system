@@ -19,7 +19,18 @@ async function init() {
   }
 
   const today = new Date().toISOString().split('T')[0];
-  document.querySelector('[name=lessonDate]').min = today;
+  const form = document.getElementById('bookingForm');
+  form.lessonDateFrom.min = today;
+  form.lessonDateTo.min = today;
+  form.lessonDateFrom.value = today;
+  form.lessonDateTo.value = today;
+  form.lessonDateFrom.addEventListener('change', () => {
+    form.lessonDateTo.min = form.lessonDateFrom.value;
+    if (form.lessonDateTo.value < form.lessonDateFrom.value) {
+      form.lessonDateTo.value = form.lessonDateFrom.value;
+    }
+    updateQuote();
+  });
   updateDurationLabels();
 
   window.addEventListener('langchange', () => {
@@ -151,7 +162,8 @@ function toggleStripeOption() {
 function getFormData() {
   const form = document.getElementById('bookingForm');
   return {
-    lessonDate: form.lessonDate.value,
+    lessonDateFrom: form.lessonDateFrom.value,
+    lessonDateTo: form.lessonDateTo.value,
     resortLocation: form.resortLocation.value,
     durationHours: Number(form.durationHours.value),
     lessonType: form.lessonType.value,
@@ -196,7 +208,8 @@ async function updateQuote() {
       durationHours,
       totalGuests,
       childrenUnder6,
-      lessonDate: form.lessonDate?.value,
+      lessonDateFrom: form.lessonDateFrom?.value,
+      lessonDateTo: form.lessonDateTo?.value,
     });
     const q = res.data;
 
@@ -238,8 +251,12 @@ async function updateQuote() {
           <span class="text-right text-sm text-slate-500">${q.regionName}</span>
         </div>
         <div class="flex justify-between">
+          <span class="text-slate-600">${tr('public.lessonDays')}</span>
+          <span>${q.lessonDayCount || 1} ${tr('common.days')}</span>
+        </div>
+        <div class="flex justify-between">
           <span class="text-slate-600">${tr('public.packagePrice')}</span>
-          <span>${ui.formatMoney(q.packagePrice, q.currency)}</span>
+          <span>${ui.formatMoney(q.packagePrice, q.currency)}${(q.lessonDayCount || 1) > 1 ? ` × ${q.lessonDayCount}` : ''}</span>
         </div>
         <div class="flex justify-between">
           <span class="text-slate-600">${tr('public.guests')}</span>

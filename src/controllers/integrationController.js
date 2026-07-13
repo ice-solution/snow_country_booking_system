@@ -5,15 +5,7 @@ const pricingConfigService = require('../services/pricingConfigService');
 const { createBookingFromKlookEmail, parseKlookEmail } = require('../services/klookImportService');
 const { generateTimeSlots } = require('../config/gantt');
 
-function normalizeLessonDate(dateInput) {
-  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-    const [year, month, day] = dateInput.split('-').map(Number);
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
-  }
-  const date = new Date(dateInput);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
+const { parseLessonDateRange, formatLessonDateRange } = require('../utils/lessonDateRange');
 
 const ALLOWED_SOURCES = ['klook', 'whatsapp', 'line', 'webchat'];
 
@@ -22,11 +14,13 @@ async function buildIntegrationPayload(body) {
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
   const durationHours = Number(body.durationHours);
   const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
+  const dateRange = parseLessonDateRange(body);
+  const dayCount = dateRange.lessonDayCount;
 
   const payload = {
     source: body.source,
     status: 'pending',
-    lessonDate: normalizeLessonDate(body.lessonDate),
+    ...dateRange,
     durationHours,
     region: body.region,
     resortLocation: body.resortLocation,
@@ -37,6 +31,8 @@ async function buildIntegrationPayload(body) {
     guestName: body.guestName.trim(),
     phone: body.phone.trim(),
     email: body.email?.trim().toLowerCase(),
+    whatsapp: body.whatsapp?.trim(),
+    line: body.line?.trim(),
     languagePref: body.languagePref || 'any',
     specialRequests: body.specialRequests?.trim(),
     paymentMethod: body.paymentMethod || 'on_site',
@@ -52,7 +48,7 @@ async function buildIntegrationPayload(body) {
       durationHours,
       coachesRequired
     );
-    payload.totalAmount = pricing.totalAmount;
+    payload.totalAmount = pricing.totalAmount * dayCount;
     payload.currency = pricing.currency;
   }
 

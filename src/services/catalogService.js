@@ -133,7 +133,18 @@ async function loadCatalog() {
   let resorts = defaults.resorts;
   if (resortDoc?.resorts?.length) {
     const byId = Object.fromEntries(resortDoc.resorts.map((r) => [r.id, r]));
-    const merged = defaults.resorts.map((r) => ({ ...r, ...byId[r.id] }));
+    const merged = defaults.resorts.map((r) => {
+      const saved = byId[r.id];
+      if (!saved) return r;
+      return {
+        ...r,
+        ...saved,
+        color: saved.color || r.color,
+        name: saved.name || r.name,
+        nameEn: saved.nameEn || r.nameEn,
+        active: saved.active !== undefined ? saved.active : r.active,
+      };
+    });
     const extra = resortDoc.resorts.filter((r) => !defaults.resorts.some((d) => d.id === r.id));
     resorts = [...merged, ...extra.filter((r) => r.id !== 'other')];
   }
@@ -154,7 +165,7 @@ async function loadCatalog() {
     note: PRICING_NOTE,
     includes: ['Coach fee', 'Basic insurance'],
     excludes: ['Lift pass', 'Equipment rental', 'Meals'],
-    maxGuestsPerCoach: 4,
+    maxGuestsPerInstructor: 4,
   };
   cacheTime = Date.now();
   return cache;
@@ -182,7 +193,8 @@ async function getPricingTable() {
     note: catalog.note,
     includes: catalog.includes,
     excludes: catalog.excludes,
-    maxGuestsPerCoach: catalog.maxGuestsPerCoach,
+    maxGuestsPerInstructor: catalog.maxGuestsPerInstructor,
+    maxGuestsPerCoach: catalog.maxGuestsPerInstructor,
   };
 }
 

@@ -76,5 +76,27 @@
     return label(resortId) !== resortId ? label(resortId) : label(regionId);
   }
 
-  window.ui = { t: tr, label, resortLabel, setResortConfig, formatDate, statusBadge, toast, formatMoney, resortMap };
+  function formatLessonDateRange(booking) {
+    const from = booking.lessonDateFrom || booking.lessonDate;
+    const to = booking.lessonDateTo || booking.lessonDateFrom || booking.lessonDate;
+    if (!from) return '-';
+    const fromStr = formatDate(from);
+    const toStr = formatDate(to);
+    if (fromStr === toStr) return fromStr;
+    const dayCount = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+    return `${fromStr} – ${toStr} (${dayCount} ${tr('common.days')})`;
+  }
+
+  window.ui = {
+    t: tr,
+    label,
+    resortLabel,
+    setResortConfig,
+    formatDate,
+    formatLessonDateRange,
+    statusBadge,
+    toast,
+    formatMoney,
+    resortMap,
+  };
 })();

@@ -1,0 +1,87 @@
+{
+  "name": "Snow Country Chatbot Core",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "snow-country-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c1810d7b-74b1-43ee-84ed-084ac4a0f68b",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "1a6cd675-1592-4b31-8234-38a06055ec2c"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Snow Country booking chatbot — paste into n8n Code node\n * (\"Snow Country Chatbot Core\" workflow)\n *\n * Expected webhook body:\n * {\n *   \"channel\": \"line\" | \"whatsapp\" | \"webchat\",\n *   \"userId\": \"unique-user-id\",\n *   \"message\": \"user text\",\n *   \"displayName\": \"optional guest name from profile\"\n * }\n *\n * Environment (n8n Settings → Variables):\n *   SNOW_COUNTRY_API_BASE  e.g. https://showcountry.ice-solution.hk/api/v1\n *   SNOW_COUNTRY_INTEGRATION_KEY\n */\n\nconst API_BASE = ($env.SNOW_COUNTRY_API_BASE || 'http://localhost:3757/api/v1').replace(/\\/$/, '');\nconst API_KEY = $env.SNOW_COUNTRY_INTEGRATION_KEY || '';\n\nconst input = $json.body || $json;\nconst channel = String(input.channel || 'webchat').toLowerCase();\nconst userId = String(input.userId || input.from || 'anonymous');\nconst text = String(input.message || input.text || '').trim();\nconst profileName = String(input.displayName || '').trim();\n\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.sessions) staticData.sessions = {};\nif (!staticData.pricingCache) staticData.pricingCache = null;\n\nconst sessionKey = `${channel}:${userId}`;\nlet session = staticData.sessions[sessionKey];\n\nconst RESET_WORDS = ['reset', '重新開始', '重新开始', 'restart', 'menu', '選單', '选单'];\n\nasync function api(path, { method = 'GET', body } = {}) {\n  const headers = { 'Content-Type': 'application/json' };\n  if (API_KEY) headers['X-API-Key'] = API_KEY;\n  const res = await fetch(`${API_BASE}${path}`, {\n    method,\n    headers,\n    body: body ? JSON.stringify(body) : undefined,\n  });\n  const data = await res.json().catch(() => ({}));\n  if (!res.ok) {\n    const msg = data.message || data.errors?.[0]?.msg || res.statusText;\n    throw new Error(msg || `API ${res.status}`);\n  }\n  return data;\n}\n\nasync function loadPricing() {\n  if (staticData.pricingCache) return staticData.pricingCache;\n  const res = await api('/website/pricing');\n  staticData.pricingCache = res.data;\n  return staticData.pricingCache;\n}\n\nfunction resortMenu(pricing) {\n  const lines = ['請輸入雪場編號（reply 數字或 id）：'];\n  let i = 1;\n  const map = {};\n  for (const region of pricing.regions || []) {\n    for (const resort of region.resorts || []) {\n      map[String(i)] = resort.id;\n      map[resort.id] = resort.id;\n      lines.push(`${i}. ${resort.nameEn || resort.name} (${resort.id})`);\n      i += 1;\n    }\n  }\n  return { text: lines.join('\\n'), map };\n}\n\nfunction newSession() {\n  return {\n    step: 'lessonDate',\n    data: {\n      source: channel === 'line' ? 'line' : channel === 'whatsapp' ? 'whatsapp' : 'webchat',\n      languagePref: 'any',\n      paymentMethod: 'on_site',\n      paymentStatus: 'pay_on_site',\n      childrenUnder6: 0,\n    },\n  };\n}\n\nfunction parseDate(s) {\n  const m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (m) return s;\n  const m2 = s.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);\n  if (m2) {\n    const [, d, mo, y] = m2;\n    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;\n  }\n  return null;\n}\n\nif (!text) {\n  return [{ json: { replyText: '請輸入文字訊息。輸入「重新開始」可重設預約流程。' } }];\n}\n\nif (RESET_WORDS.includes(text.toLowerCase()) || RESET_WORDS.includes(text)) {\n  session = newSession();\n  staticData.sessions[sessionKey] = session;\n  return [{\n    json: {\n      replyText: '已重設預約流程。\\n\\n請輸入上課日期（YYYY-MM-DD），例如：2026-03-15',\n      sessionStep: session.step,\n    },\n  }];\n}\n\nif (!session) {\n  session = newSession();\n  if (profileName) session.data.guestName = profileName;\n  staticData.sessions[sessionKey] = session;\n  return [{\n    json: {\n      replyText:\n        '歡迎預約 Snow Country 滑雪課程！\\n\\n' +\n        '請輸入上課日期（YYYY-MM-DD），例如：2026-03-15\\n' +\n        '（輸入「重新開始」可隨時重設）',\n      sessionStep: session.step,\n    },\n  }];\n}\n\nconst pricing = await loadPricing();\nlet replyText = '';\nlet quickReplies = [];\n\ntry {\n  switch (session.step) {\n    case 'lessonDate': {\n      const date = parseDate(text);\n      if (!date) {\n        replyText = '日期格式不正確。請用 YYYY-MM-DD，例如 2026-03-15';\n        break;\n      }\n      session.data.lessonDate = date;\n      let capNote = '';\n      try {\n        const cap = await api(`/website/availability?date=${date}`);\n        const st = cap.data?.status;\n        if (st === 'overbooked') capNote = '\\n⚠️ 此日較滿，仍可先提交，我們會確認。';\n        else if (st === 'tight') capNote = '\\n⚠️ 此日名額有限，建議盡早確認。';\n      } catch {\n        /* optional */\n      }\n      session.step = 'resort';\n      session._resortMap = resortMenu(pricing).map;\n      replyText = `日期：${date}${capNote}\\n\\n${resortMenu(pricing).text}`;\n      break;\n    }\n    case 'resort': {\n      const id = session._resortMap?.[text] || session._resortMap?.[text.toLowerCase()];\n      if (!id) {\n        replyText = `無效選擇。\\n\\n${resortMenu(pricing).text}`;\n        break;\n      }\n      session.data.resortLocation = id;\n      session.step = 'duration';\n      replyText = '請選擇上課時數（輸入 3、4、5 或 6）：';\n      quickReplies = ['3', '4', '5', '6'];\n      break;\n    }\n    case 'duration': {\n      const h = Number(text);\n      if (![3, 4, 5, 6].includes(h)) {\n        replyText = '請輸入 3、4、5 或 6 小時。';\n        break;\n      }\n      session.data.durationHours = h;\n      session.step = 'lessonType';\n      replyText = '課程類型：\\n1. ski（雙板）\\n2. snowboard（單板）';\n      quickReplies = ['ski', 'snowboard', '1', '2'];\n      break;\n    }\n    case 'lessonType': {\n      const t = text.toLowerCase();\n      const type = t === '1' || t === 'ski' ? 'ski' : t === '2' || t === 'snowboard' ? 'snowboard' : null;\n      if (!type) {\n        replyText = '請輸入 ski 或 snowboard（或 1 / 2）。';\n        break;\n      }\n      session.data.lessonType = type;\n      session.step = 'totalGuests';\n      replyText = '總人數（包括成人及小童）？';\n      break;\n    }\n    case 'totalGuests': {\n      const n = Number(text);\n      if (!Number.isInteger(n) || n < 1) {\n        replyText = '請輸入有效人數（正整數）。';\n        break;\n      }\n      session.data.totalGuests = n;\n      session.step = 'childrenUnder6';\n      replyText = '6 歲以下小童人數？（沒有請輸入 0）';\n      break;\n    }\n    case 'childrenUnder6': {\n      const n = Number(text);\n      if (!Number.isInteger(n) || n < 0) {\n        replyText = '請輸入 0 或正整數。';\n        break;\n      }\n      session.data.childrenUnder6 = n;\n      session.step = 'languagePref';\n      replyText = '語言偏好：\\n1. 不限\\n2. 中文\\n3. 英文';\n      quickReplies = ['1', '2', '3', 'any', 'zh', 'en'];\n      break;\n    }\n    case 'languagePref': {\n      const map = { '1': 'any', '2': 'zh', '3': 'en', any: 'any', zh: 'zh', en: 'en' };\n      const pref = map[text.toLowerCase()];\n      if (!pref) {\n        replyText = '請輸入 1（不限）、2（中文）或 3（英文）。';\n        break;\n      }\n      session.data.languagePref = pref;\n      session.step = 'guestName';\n      replyText = '聯絡人姓名？';\n      break;\n    }\n    case 'guestName': {\n      if (text.length < 2) {\n        replyText = '請輸入有效姓名。';\n        break;\n      }\n      session.data.guestName = text;\n      session.step = 'phone';\n      replyText = '聯絡電話？（含國碼，例如 +85291234567）';\n      break;\n    }\n    case 'phone': {\n      if (text.replace(/\\D/g, '').length < 8) {\n        replyText = '請輸入有效電話號碼。';\n        break;\n      }\n      session.data.phone = text;\n      if (channel === 'whatsapp') session.data.whatsapp = text;\n      if (channel === 'line') session.data.line = userId;\n      session.step = 'specialRequests';\n      replyText = '特殊要求？（沒有請輸入 skip）';\n      break;\n    }\n    case 'specialRequests': {\n      if (text.toLowerCase() !== 'skip' && text !== '跳過' && text !== '无' && text !== '無') {\n        session.data.specialRequests = text;\n      }\n      session.step = 'confirm';\n      const quote = await api('/website/quote', {\n        method: 'POST',\n        body: {\n          resortLocation: session.data.resortLocation,\n          durationHours: session.data.durationHours,\n          totalGuests: session.data.totalGuests,\n          childrenUnder6: session.data.childrenUnder6,\n          lessonDate: session.data.lessonDate,\n        },\n      });\n      session._quote = quote.data;\n      const q = quote.data;\n      replyText =\n        '── 預約摘要 ──\\n' +\n        `日期：${session.data.lessonDate}\\n` +\n        `雪場：${session.data.resortLocation}\\n` +\n        `時數：${session.data.durationHours} 小時\\n` +\n        `類型：${session.data.lessonType}\\n` +\n        `人數：${session.data.totalGuests}（6歲以下：${session.data.childrenUnder6}）\\n` +\n        `教練：${q.coachesRequired} 組\\n` +\n        `預估費用：¥${q.totalAmount?.toLocaleString?.() || q.totalAmount}\\n` +\n        `付款：現場付款\\n\\n` +\n        '確認提交？（輸入 yes 確認，no 取消）';\n      quickReplies = ['yes', 'no'];\n      break;\n    }\n    case 'confirm': {\n      const ok = ['yes', 'y', '是', '確認', '好'].includes(text.toLowerCase());\n      const no = ['no', 'n', '否', '取消'].includes(text.toLowerCase());\n      if (no) {\n        delete staticData.sessions[sessionKey];\n        return [{\n          json: {\n            replyText: '已取消。輸入任意文字可重新開始預約。',\n            sessionStep: 'cancelled',\n          },\n        }];\n      }\n      if (!ok) {\n        replyText = '請輸入 yes 確認或 no 取消。';\n        break;\n      }\n      const payload = {\n        ...session.data,\n        adminNotes: `Chatbot ${channel} userId=${userId}`,\n      };\n      const created = await api('/integrations/bookings', { method: 'POST', body: payload });\n      const b = created.data;\n      delete staticData.sessions[sessionKey];\n      replyText =\n        '✅ 預約已提交！\\n\\n' +\n        `參考：${b.id}\\n` +\n        `狀態：待管理員確認\\n` +\n        `費用：¥${b.totalAmount?.toLocaleString?.() || b.totalAmount}\\n\\n` +\n        '我們會盡快確認並安排教練。輸入任意文字可再次預約。';\n      break;\n    }\n    default:\n      session = newSession();\n      replyText = '流程已重設。請輸入上課日期（YYYY-MM-DD）。';\n  }\n} catch (err) {\n  replyText = `抱歉，系統錯誤：${err.message}\\n請稍後再試或輸入「重新開始」。`;\n}\n\nstaticData.sessions[sessionKey] = session;\n\nreturn [{\n  json: {\n    replyText,\n    quickReplies,\n    sessionStep: session?.step,\n    channel,\n    userId,\n  },\n}];\n"
+      },
+      "id": "f7306576-ad0d-4405-90a9-6de10481738e",
+      "name": "Chatbot Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { replyText: $json.replyText, quickReplies: $json.quickReplies || [], sessionStep: $json.sessionStep, channel: $json.channel, userId: $json.userId } }}",
+        "options": {}
+      },
+      "id": "7d79e8dc-85aa-4a72-b2df-e81334e4e09c",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chatbot Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatbot Logic": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "snow-country"
+    }
+  ]
+}

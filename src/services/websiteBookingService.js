@@ -4,16 +4,11 @@ const { calculateCoachesRequired } = require('../utils/coachRequirement');
 const catalogService = require('../services/catalogService');
 const pricingConfigService = require('../services/pricingConfigService');
 const { createCheckoutSession, isStripeEnabled } = require('./stripeService');
-
-function normalizeLessonDate(dateInput) {
-  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-    const [year, month, day] = dateInput.split('-').map(Number);
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
-  }
-  const date = new Date(dateInput);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
+const {
+  parseLessonDateRange,
+  getLessonDays,
+  toIsoDate,
+} = require('../utils/lessonDateRange');
 
 function generatePublicRef() {
   return crypto.randomBytes(16).toString('hex');
@@ -24,6 +19,7 @@ async function buildWebsiteBookingPayload(body) {
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
   const durationHours = Number(body.durationHours);
   const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
+  const dateRange = parseLessonDateRange(body);
   const pricing = await pricingConfigService.calculatePrice(
     body.resortLocation,
     durationHours,
@@ -33,7 +29,7 @@ async function buildWebsiteBookingPayload(body) {
   return catalogService.applyResortToBooking({
     source: 'website',
     status: 'pending',
-    lessonDate: normalizeLessonDate(body.lessonDate),
+    ...dateRange,
     durationHours,
     resortLocation: body.resortLocation,
     lessonType: body.lessonType,
@@ -51,7 +47,7 @@ async function buildWebsiteBookingPayload(body) {
     languagePref: body.languagePref || 'any',
     specialRequests: body.specialRequests?.trim(),
     paymentMethod: body.paymentMethod,
-    totalAmount: pricing.totalAmount,
+    totalAmount: pricing.totalAmount * dateRange.lessonDayCount,
     currency: pricing.currency,
     publicRef: generatePublicRef(),
   });
@@ -61,7 +57,10 @@ function sanitizePublicBooking(booking) {
   return {
     id: booking._id,
     status: booking.status,
-    lessonDate: booking.lessonDate,
+    lessonDateFrom: booking.lessonDateFrom,
+    lessonDateTo: booking.lessonDateTo,
+    lessonDate: booking.lessonDateFrom,
+    lessonDayCount: getLessonDays(booking).length,
     durationHours: booking.durationHours,
     region: booking.region,
     resortLocation: booking.resortLocation,
@@ -82,7 +81,15 @@ function sanitizePublicBooking(booking) {
   };
 }
 
-async function getQuote({ resortLocation, durationHours, totalGuests, childrenUnder6, lessonDate }) {
+async function getQuote({
+  resortLocation,
+  durationHours,
+  totalGuests,
+  childrenUnder6,
+  lessonDate,
+  lessonDateFrom,
+  lessonDateTo,
+}) {
   const coachesRequired = calculateCoachesRequired(
     Number(totalGuests),
     Number(childrenUnder6 || 0)
@@ -93,15 +100,36 @@ async function getQuote({ resortLocation, durationHours, totalGuests, childrenUn
     coachesRequired
   );
 
+  let dayCount = 1;
   let capacity = null;
-  if (lessonDate) {
+  const fromInput = lessonDateFrom || lessonDate;
+  const toInput = lessonDateTo || lessonDateFrom || lessonDate;
+
+  if (fromInput) {
+    const range = parseLessonDateRange({
+      lessonDateFrom: fromInput,
+      lessonDateTo: toInput,
+    });
+    dayCount = range.lessonDayCount;
+
     const { getDailyCapacity } = require('./capacityService');
-    capacity = await getDailyCapacity(lessonDate);
+    const capacities = [];
+    for (const day of getLessonDays(range)) {
+      capacities.push(await getDailyCapacity(day));
+    }
+    const priority = { overbooked: 3, tight: 2, ok: 1 };
+    capacity = capacities.reduce(
+      (worst, cap) => (priority[cap.status] > priority[worst.status] ? cap : worst),
+      capacities[0]
+    );
   }
 
   return {
     coachesRequired,
     ...pricing,
+    packageTotal: pricing.totalAmount,
+    totalAmount: pricing.totalAmount * dayCount,
+    lessonDayCount: dayCount,
     totalGuests: Number(totalGuests),
     stripeEnabled: isStripeEnabled(),
     capacity,

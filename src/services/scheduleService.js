@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
-const Coach = require('../models/Coach');
+const Instructor = require('../models/Instructor');
+const { mongoOverlapsRange, expandBookingToDateKeys } = require('../utils/lessonDateRange');
 
 function normalizeDate(dateInput) {
   if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
@@ -18,7 +19,7 @@ async function getSchedule({ from, to, coachId }) {
 
   const bookingFilter = {
     status: { $in: ['confirmed', 'assigned', 'completed', 'needs_attention'] },
-    lessonDate: { $gte: start, $lte: end },
+    ...mongoOverlapsRange(start, end),
   };
 
   if (coachId) {
@@ -28,15 +29,16 @@ async function getSchedule({ from, to, coachId }) {
   const [bookings, coaches] = await Promise.all([
     Booking.find(bookingFilter)
       .populate('assignedCoaches.coach', 'name phone specialties')
-      .sort({ lessonDate: 1 }),
-    Coach.find(coachId ? { _id: coachId, active: true } : { active: true }).sort({ name: 1 }),
+      .sort({ lessonDateFrom: 1 }),
+    Instructor.find(coachId ? { _id: coachId, active: true } : { active: true }).sort({ name: 1 }),
   ]);
 
   const byDate = {};
   for (const booking of bookings) {
-    const key = normalizeDate(booking.lessonDate).toISOString().split('T')[0];
-    if (!byDate[key]) byDate[key] = [];
-    byDate[key].push(booking);
+    for (const key of expandBookingToDateKeys(booking, { from: start, to: end })) {
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(booking);
+    }
   }
 
   return {

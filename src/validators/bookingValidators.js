@@ -1,10 +1,24 @@
 const { body, param, query } = require('express-validator');
 const Booking = require('../models/Booking');
 const { isValidResortId, isValidRegionId } = require('./catalogChecks');
+const { normalizeLessonDate } = require('../utils/lessonDateRange');
+
+function validateDateRange(body) {
+  const fromInput = body.lessonDateFrom || body.lessonDate;
+  const toInput = body.lessonDateTo || body.lessonDateFrom || body.lessonDate;
+  if (!fromInput) throw new Error('lessonDateFrom is required');
+  const from = normalizeLessonDate(fromInput);
+  const to = normalizeLessonDate(toInput);
+  if (to < from) throw new Error('lessonDateTo must be on or after lessonDateFrom');
+  return true;
+}
 
 const bookingValidators = {
   create: [
-    body('lessonDate').isISO8601().withMessage('Please provide a valid lesson date'),
+    body('lessonDateFrom').optional().isISO8601(),
+    body('lessonDateTo').optional().isISO8601(),
+    body('lessonDate').optional().isISO8601(),
+    body().custom(validateDateRange),
     body('durationHours')
       .custom((v) => Booking.DURATION_HOURS.includes(Number(v)))
       .withMessage('Duration must be 3, 4, 5, or 6 hours')
@@ -35,7 +49,15 @@ const bookingValidators = {
   ],
   update: [
     param('id').isMongoId(),
+    body('lessonDateFrom').optional().isISO8601(),
+    body('lessonDateTo').optional().isISO8601(),
     body('lessonDate').optional().isISO8601(),
+    body().custom((value, { req }) => {
+      const hasDate =
+        req.body.lessonDateFrom || req.body.lessonDateTo || req.body.lessonDate;
+      if (!hasDate && req.method === 'PUT') return true;
+      return validateDateRange(req.body);
+    }),
     body('durationHours')
       .optional()
       .custom((v) => Booking.DURATION_HOURS.includes(Number(v)))
@@ -62,8 +84,10 @@ const bookingValidators = {
   ],
   assign: [
     param('id').isMongoId(),
-    body('coachIds').isArray({ min: 1 }),
-    body('coachIds.*').isMongoId(),
+    body('instructorIds').optional().isArray({ min: 1 }),
+    body('instructorIds.*').optional().isMongoId(),
+    body('coachIds').optional().isArray({ min: 1 }),
+    body('coachIds.*').optional().isMongoId(),
     body('assignedBy').optional().trim(),
   ],
   calculate: [

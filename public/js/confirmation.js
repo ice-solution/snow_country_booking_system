@@ -3,6 +3,16 @@
     return i18n.t(key, vars);
   }
 
+  function formatLessonDateRange(booking) {
+    const from = booking.lessonDateFrom || booking.lessonDate;
+    const to = booking.lessonDateTo || booking.lessonDateFrom || booking.lessonDate;
+    const fromStr = ui.formatDate(from);
+    const toStr = ui.formatDate(to);
+    if (fromStr === toStr) return fromStr;
+    const dayCount = booking.lessonDayCount || Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+    return `${fromStr} – ${toStr} (${dayCount} ${tr('common.days')})`;
+  }
+
   function boot() {
     i18n.init('zh');
     i18n.mountLangSwitcher('langSwitcher', { dark: true });
@@ -77,7 +87,7 @@
             </div>
             <div>
               <p class="text-slate-500">${tr('public.lessonDate')}</p>
-              <p class="font-medium">${ui.formatDate(b.lessonDate)}</p>
+              <p class="font-medium">${formatLessonDateRange(b)}</p>
             </div>
             <div>
               <p class="text-slate-500">${tr('public.lessonHours')}</p>

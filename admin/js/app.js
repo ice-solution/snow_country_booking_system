@@ -7,7 +7,7 @@ const PAGE_TITLE_KEYS = {
   dashboard: 'admin.nav.dashboard',
   bookings: 'admin.nav.bookings',
   'new-booking': 'admin.nav.newBooking',
-  coaches: 'admin.nav.coaches',
+  instructors: 'admin.nav.instructors',
   schedule: 'admin.nav.schedule',
   'head-schedule': 'admin.nav.headSchedule',
   pricing: 'admin.nav.pricing',
@@ -32,6 +32,26 @@ function guestPageLink(bookingId, guestName, className = 'text-brand-600 hover:u
   return `<a href="/guest.html?id=${bookingId}" target="_blank" rel="noopener" class="${className}">${guestName}</a>`;
 }
 
+function bookingDateIso(booking, field) {
+  const val = booking[field] || booking.lessonDate;
+  if (!val) return '';
+  return new Date(val).toISOString().split('T')[0];
+}
+
+function bindLessonDateRange(form) {
+  const fromInput = form.querySelector('[name=lessonDateFrom]');
+  const toInput = form.querySelector('[name=lessonDateTo]');
+  if (!fromInput || !toInput) return;
+  const syncToMin = () => {
+    toInput.min = fromInput.value;
+    if (toInput.value && toInput.value < fromInput.value) {
+      toInput.value = fromInput.value;
+    }
+  };
+  fromInput.addEventListener('change', syncToMin);
+  syncToMin();
+}
+
 function renderSocialContacts(b) {
   const fields = [
     ['admin.instagram', b.instagram],
@@ -50,14 +70,14 @@ function renderSocialContacts(b) {
   `;
 }
 
-function showCoachLeaveDialog(coachId) {
+function showInstructorLeaveDialog(coachId) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4';
     overlay.innerHTML = `
       <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
         <h3 class="font-semibold text-lg mb-4">${t('admin.coachLeave')}</h3>
-        <form id="coachLeaveForm" class="space-y-3">
+        <form id="instructorLeaveForm" class="space-y-3">
           <label class="text-sm block">
             <span class="text-slate-600">${t('coach.leaveDate')}</span>
             <input type="date" name="date" required class="mt-1 w-full border rounded-lg px-3 py-2">
@@ -83,7 +103,7 @@ function showCoachLeaveDialog(coachId) {
       overlay.remove();
       resolve(null);
     });
-    overlay.querySelector('#coachLeaveForm').addEventListener('submit', (e) => {
+    overlay.querySelector('#instructorLeaveForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const form = e.target;
       const period = form.period.value;
@@ -186,7 +206,7 @@ function navigate(page) {
 
   if (page === 'dashboard') loadDashboard();
   if (page === 'bookings') loadBookings();
-  if (page === 'coaches') loadCoaches();
+  if (page === 'instructors') loadInstructors();
   if (page === 'new-booking') renderNewBookingForm();
   if (page === 'schedule') loadScheduleView({ headOnly: false, initialDate: pendingScheduleDate });
   if (page === 'head-schedule') loadScheduleView({ headOnly: true, initialDate: pendingScheduleDate });
@@ -328,11 +348,11 @@ function renderBookingTable(bookings, { compact = false } = {}) {
             .map(
               (b) => `
             <tr class="border-t hover:bg-slate-50">
-              <td class="px-4 py-3">${ui.formatDate(b.lessonDate)}<br><span class="text-xs text-slate-500">${b.lessonStartTime || '09:00'} · ${b.durationHours}h · ${ui.resortLabel(b.resortLocation, b.region)}</span></td>
+              <td class="px-4 py-3">${ui.formatLessonDateRange(b)}<br><span class="text-xs text-slate-500">${b.lessonStartTime || '09:00'} · ${b.durationHours}h · ${ui.resortLabel(b.resortLocation, b.region)}</span></td>
               <td class="px-4 py-3">${guestPageLink(b._id, b.guestName)}<br><span class="text-xs text-slate-500">${b.phone}</span></td>
               <td class="px-4 py-3">${ui.label(b.lessonType)}</td>
               <td class="px-4 py-3">${b.totalGuests} ${t('common.people')}<br><span class="text-xs text-slate-500">${t('admin.childrenUnder6Short')}: ${b.childrenUnder6}</span></td>
-              <td class="px-4 py-3">${t('public.coachesNeeded', { n: b.coachesRequired })}${b.assignedCoaches?.length ? `<br><span class="text-xs text-green-700">${b.assignedCoaches.map((a) => a.coach?.name || '-').join(', ')}</span>` : ''}</td>
+              <td class="px-4 py-3">${t('public.coachesNeeded', { n: b.instructorsRequired })}${b.assignedInstructors?.length ? `<br><span class="text-xs text-green-700">${b.assignedInstructors.map((a) => a.instructor?.name || '-').join(', ')}</span>` : ''}</td>
               <td class="px-4 py-3">${ui.label(b.source)}</td>
               <td class="px-4 py-3">${b.totalAmount ? ui.formatMoney(b.totalAmount, b.currency) : '-'}<br><span class="text-xs text-slate-500">${ui.label(b.paymentStatus || '')}</span></td>
               <td class="px-4 py-3">${ui.statusBadge(b.status)}</td>
@@ -450,7 +470,7 @@ function bindBookingActions() {
           showAssignPanel(id, 'reassign');
         } else if (action === 'auto-assign') {
           if (!confirm(t('admin.confirmAutoAssign'))) return;
-          await api.autoAssignCoaches(id);
+          await api.autoAssignInstructors(id);
           ui.toast(t('admin.autoAssignOk'), 'success');
           loadBookings();
         } else if (action === 'needs-attention') {
@@ -509,8 +529,12 @@ async function showBookingDetail(id) {
         ${editable ? `
         <form id="editBookingForm" class="grid md:grid-cols-2 gap-4 text-sm border-t pt-4">
           <div>
-            <label class="block text-xs text-slate-500 mb-1">${t('public.lessonDate')}</label>
-            <input name="lessonDate" type="date" value="${new Date(b.lessonDate).toISOString().split('T')[0]}" ${fullEdit ? '' : 'disabled'} class="border rounded-lg px-3 py-2 w-full disabled:bg-slate-50">
+            <label class="block text-xs text-slate-500 mb-1">${t('public.lessonDateFrom')}</label>
+            <input name="lessonDateFrom" type="date" value="${bookingDateIso(b, 'lessonDateFrom')}" ${fullEdit ? '' : 'disabled'} class="border rounded-lg px-3 py-2 w-full disabled:bg-slate-50">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">${t('public.lessonDateTo')}</label>
+            <input name="lessonDateTo" type="date" value="${bookingDateIso(b, 'lessonDateTo')}" ${fullEdit ? '' : 'disabled'} class="border rounded-lg px-3 py-2 w-full disabled:bg-slate-50">
           </div>
           <div>
             <label class="block text-xs text-slate-500 mb-1">${t('admin.startTime')}</label>
@@ -561,7 +585,7 @@ async function showBookingDetail(id) {
         </form>
         ` : `
         <div class="grid md:grid-cols-2 gap-4 text-sm border-t pt-4">
-          <p><strong>${t('admin.col.date')}:</strong> ${ui.formatDate(b.lessonDate)} ${b.lessonStartTime || '09:00'} (${b.durationHours} ${t('common.hours')})</p>
+          <p><strong>${t('admin.col.date')}:</strong> ${ui.formatLessonDateRange(b)} ${b.lessonStartTime || '09:00'} (${b.durationHours} ${t('common.hours')})</p>
           <p><strong>${t('public.resort')}:</strong> ${ui.resortLabel(b.resortLocation, b.region)}</p>
         </div>
         `}
@@ -572,14 +596,17 @@ async function showBookingDetail(id) {
           <p><strong>Email:</strong> ${b.email || '-'}</p>
           ${renderSocialContacts(b)}
           <p><strong>${t('public.languagePref')}:</strong> ${ui.label(b.languagePref)}</p>
-          <p><strong>${t('public.coachesRequired')}:</strong> ${b.coachesRequired}</p>
+          <p><strong>${t('public.instructorsRequired')}:</strong> ${b.instructorsRequired}</p>
           <p><strong>${t('public.estimatedFee')}:</strong> ${ui.formatMoney(b.totalAmount, b.currency)} · ${ui.label(b.paymentMethod)}</p>
-          ${b.assignedCoaches?.length ? `<p class="md:col-span-2"><strong>${t('admin.assignedCoaches')}:</strong> ${b.assignedCoaches.map((a) => a.coach?.name || '-').join(', ')}</p>` : ''}
+          ${b.assignedInstructors?.length ? `<p class="md:col-span-2"><strong>${t('admin.assignedInstructors')}:</strong> ${b.assignedInstructors.map((a) => a.instructor?.name || '-').join(', ')}</p>` : ''}
           <p class="md:col-span-2"><strong>${t('admin.specialRequests')}:</strong> ${b.specialRequests || '-'}</p>
           ${b.klookOrderId ? `<p><strong>${t('admin.klookOrder')}:</strong> ${b.klookOrderId}</p>` : ''}
         </div>
       </div>
     `;
+
+    const editForm = panel.querySelector('#editBookingForm');
+    if (editForm) bindLessonDateRange(editForm);
 
     panel.querySelector('#closeBookingDetail')?.addEventListener('click', () => {
       panel.classList.add('hidden');
@@ -596,7 +623,8 @@ async function showBookingDetail(id) {
       };
       if (fullEdit) {
         Object.assign(body, {
-          lessonDate: form.lessonDate.value,
+          lessonDateFrom: form.lessonDateFrom.value,
+          lessonDateTo: form.lessonDateTo.value,
           durationHours: Number(form.durationHours.value),
           lessonType: form.lessonType.value,
           totalGuests: Number(form.totalGuests.value),
@@ -670,12 +698,12 @@ async function showAssignPanel(id, mode = 'assign') {
   try {
     const [bookingRes, suggestRes] = await Promise.all([
       api.getBooking(id),
-      api.suggestCoaches(id, isReassign),
+      api.suggestInstructors(id, isReassign),
     ]);
     const b = bookingRes.data;
-    const { suggestions, allEligible, coachesRequired, canAutoAssign } = suggestRes.data;
-    const currentCoaches = (b.assignedCoaches || [])
-      .map((a) => a.coach?.name)
+    const { suggestions, allEligible, instructorsRequired, lessonDayCount, canAutoAssign } = suggestRes.data;
+    const currentCoaches = (b.assignedInstructors || [])
+      .map((a) => a.instructor?.name)
       .filter(Boolean)
       .join(', ');
 
@@ -683,8 +711,8 @@ async function showAssignPanel(id, mode = 'assign') {
       <div class="bg-white border rounded-xl p-6 shadow-sm">
         <div class="flex justify-between items-start mb-4">
           <div>
-            <h3 class="text-lg font-semibold">${isReassign ? t('admin.reassignTitle') : t('admin.assignTitle')}: ${b.guestName} · ${ui.formatDate(b.lessonDate)}</h3>
-            <p class="text-sm text-slate-600">${t('public.coachesNeeded', { n: coachesRequired })}</p>
+            <h3 class="text-lg font-semibold">${isReassign ? t('admin.reassignTitle') : t('admin.assignTitle')}: ${b.guestName} · ${ui.formatLessonDateRange(b)}</h3>
+            <p class="text-sm text-slate-600">${t('public.coachesNeeded', { n: instructorsRequired })}${lessonDayCount > 1 ? ` · ${lessonDayCount} ${t('common.days')}` : ''}</p>
             ${isReassign && currentCoaches ? `<p class="text-xs text-slate-500 mt-1">Current: ${currentCoaches}</p>` : ''}
           </div>
           ${canAutoAssign ? `<button id="autoAssignBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">${isReassign ? t('admin.action.autoAssign') : t('admin.action.autoAssign')}</button>` : ''}
@@ -695,7 +723,7 @@ async function showAssignPanel(id, mode = 'assign') {
           <div class="space-y-2">
             ${suggestions.length ? suggestions.map((s) => `
               <label class="flex items-start gap-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" name="coachPick" value="${s.coachId}" class="coach-checkbox mt-1" ${suggestions.indexOf(s) < coachesRequired ? 'checked' : ''}>
+                <input type="checkbox" name="instructorPick" value="${s.instructorId}" class="instructor-checkbox mt-1" ${suggestions.indexOf(s) < instructorsRequired ? 'checked' : ''}>
                 <div class="flex-1">
                   <p class="font-medium">${s.name} <span class="text-xs text-slate-500">score ${s.score}</span></p>
                   <p class="text-xs text-slate-500">${s.specialties.map(ui.label).join(', ')} · ${s.languages.map(ui.label).join(', ')} · ${ui.label(s.heatLevel)}</p>
@@ -708,8 +736,8 @@ async function showAssignPanel(id, mode = 'assign') {
 
         <div class="mb-4">
           <p class="text-sm font-medium mb-2">${t('admin.allEligible')}</p>
-          <select id="manualCoachSelect" multiple class="w-full border rounded-lg p-2 text-sm h-32">
-            ${allEligible.map((c) => `<option value="${c.coachId}">${c.name} (score ${c.score})</option>`).join('')}
+          <select id="manualInstructorSelect" multiple class="w-full border rounded-lg p-2 text-sm h-32">
+            ${allEligible.map((c) => `<option value="${c.instructorId}">${c.name} (score ${c.score})</option>`).join('')}
           </select>
         </div>
 
@@ -718,21 +746,21 @@ async function showAssignPanel(id, mode = 'assign') {
     `;
 
     document.getElementById('confirmAssign').addEventListener('click', async () => {
-      const checked = [...document.querySelectorAll('.coach-checkbox:checked')].map((el) => el.value);
-      const manual = [...document.getElementById('manualCoachSelect').selectedOptions].map((o) => o.value);
-      const coachIds = checked.length ? checked : manual;
+      const checked = [...document.querySelectorAll('.instructor-checkbox:checked')].map((el) => el.value);
+      const manual = [...document.getElementById('manualInstructorSelect').selectedOptions].map((o) => o.value);
+      const instructorIds = checked.length ? checked : manual;
 
-      if (coachIds.length !== coachesRequired) {
-        ui.toast(t('public.coachesNeeded', { n: coachesRequired }), 'error');
+      if (instructorIds.length !== instructorsRequired) {
+        ui.toast(t('public.coachesNeeded', { n: instructorsRequired }), 'error');
         return;
       }
 
       try {
         if (isReassign) {
-          await api.reassignCoaches(id, coachIds);
+          await api.reassignInstructors(id, instructorIds);
           ui.toast(t('admin.reassignOk'), 'success');
         } else {
-          await api.assignCoaches(id, coachIds);
+          await api.assignInstructors(id, instructorIds);
           ui.toast(t('admin.assignOk'), 'success');
         }
         loadBookings();
@@ -747,10 +775,10 @@ async function showAssignPanel(id, mode = 'assign') {
       if (!isReassign && !confirm(t('admin.confirmAutoAssign'))) return;
       try {
         if (isReassign) {
-          await api.autoReassignCoaches(id);
+          await api.autoReassignInstructors(id);
           ui.toast(t('admin.autoReassignOk'), 'success');
         } else {
-          await api.autoAssignCoaches(id);
+          await api.autoAssignInstructors(id);
           ui.toast(t('admin.autoAssignOk'), 'success');
         }
         loadBookings();
@@ -764,12 +792,12 @@ async function showAssignPanel(id, mode = 'assign') {
   }
 }
 
-async function loadCoaches() {
+async function loadInstructors() {
   const container = document.getElementById('content');
   container.innerHTML = '<p class="text-slate-500">' + t('common.loading') + '</p>';
 
   try {
-    const [res, pendingRes] = await Promise.all([api.listCoaches(), api.listPendingLeave()]);
+    const [res, pendingRes] = await Promise.all([api.listInstructors(), api.listPendingLeave()]);
     const pending = pendingRes.data || [];
 
     container.innerHTML = `
@@ -779,21 +807,21 @@ async function loadCoaches() {
           <div class="space-y-2 text-sm" id="pendingLeaveList">
             ${pending.map((p) => `
               <div class="flex flex-wrap justify-between gap-2 items-center bg-white rounded-lg border px-3 py-2">
-                <span><strong>${p.coachName}</strong> · ${ui.formatDate(p.date)} (${leavePeriodLabel(p.period)})${p.reason ? ` · ${p.reason}` : ''}</span>
+                <span><strong>${p.instructorName}</strong> · ${ui.formatDate(p.date)} (${leavePeriodLabel(p.period)})${p.reason ? ` · ${p.reason}` : ''}</span>
                 <span class="flex gap-2">
-                  <button data-leave-action="approve" data-coach="${p.coachId}" data-request="${p.requestId}" class="px-2 py-1 bg-green-600 text-white rounded text-xs">${t('admin.approveLeave')}</button>
-                  <button data-leave-action="reject" data-coach="${p.coachId}" data-request="${p.requestId}" class="px-2 py-1 border border-red-300 text-red-600 rounded text-xs">${t('admin.rejectLeave')}</button>
+                  <button data-leave-action="approve" data-instructor="${p.instructorId}" data-request="${p.requestId}" class="px-2 py-1 bg-green-600 text-white rounded text-xs">${t('admin.approveLeave')}</button>
+                  <button data-leave-action="reject" data-instructor="${p.instructorId}" data-request="${p.requestId}" class="px-2 py-1 border border-red-300 text-red-600 rounded text-xs">${t('admin.rejectLeave')}</button>
                 </span>
               </div>`).join('')}
           </div>
         </div>` : ''}
       <div class="flex justify-between mb-4">
         <p class="text-sm text-slate-600">${res.data.length} coach(es)</p>
-        <button id="showCoachForm" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('admin.addCoach')}</button>
+        <button id="showInstructorForm" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('admin.addInstructor')}</button>
       </div>
-      <div id="coachForm" class="hidden mb-6"></div>
+      <div id="instructorForm" class="hidden mb-6"></div>
       <div class="grid gap-4">
-        ${res.data.map(renderCoachCard).join('')}
+        ${res.data.map(renderInstructorCard).join('')}
       </div>
     `;
 
@@ -801,45 +829,45 @@ async function loadCoaches() {
       btn.addEventListener('click', async () => {
         try {
           const action = btn.dataset.leaveAction;
-          await api.reviewLeave(btn.dataset.coach, btn.dataset.request, action);
+          await api.reviewLeave(btn.dataset.instructor, btn.dataset.request, action);
           ui.toast(action === 'approve' ? t('admin.leaveSet') : 'Rejected', 'success');
-          loadCoaches();
+          loadInstructors();
         } catch (err) {
           ui.toast(err.message, 'error');
         }
       });
     });
 
-    document.getElementById('showCoachForm').addEventListener('click', () => {
-      const form = document.getElementById('coachForm');
+    document.getElementById('showInstructorForm').addEventListener('click', () => {
+      const form = document.getElementById('instructorForm');
       form.classList.toggle('hidden');
       if (!form.classList.contains('hidden')) {
-        form.innerHTML = renderCoachForm();
-        bindCoachFormSubmit();
+        form.innerHTML = renderInstructorForm();
+        bindInstructorFormSubmit();
       }
     });
 
-    container.querySelectorAll('[data-coach-action="block"]').forEach((btn) => {
+    container.querySelectorAll('[data-instructor-action="block"]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const payload = await showCoachLeaveDialog(btn.dataset.id);
+        const payload = await showInstructorLeaveDialog(btn.dataset.id);
         if (!payload) return;
         try {
-          const res = await api.blockCoachDate(btn.dataset.id, payload);
+          const res = await api.blockInstructorDate(btn.dataset.id, payload);
           ui.toast(res.message || t('admin.leaveSet'), res.affectedBookings > 0 ? 'error' : 'success');
-          loadCoaches();
+          loadInstructors();
         } catch (err) {
           ui.toast(err.message, 'error');
         }
       });
     });
 
-    container.querySelectorAll('[data-coach-action="unblock"]').forEach((btn) => {
+    container.querySelectorAll('[data-instructor-action="unblock"]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm(t('admin.confirmUnblock', { date: btn.dataset.date }))) return;
         try {
-          await api.unblockCoachDate(btn.dataset.id, { date: btn.dataset.date });
+          await api.unblockInstructorDate(btn.dataset.id, { date: btn.dataset.date });
           ui.toast(t('admin.leaveRemoved'), 'success');
-          loadCoaches();
+          loadInstructors();
         } catch (err) {
           ui.toast(err.message, 'error');
         }
@@ -850,20 +878,20 @@ async function loadCoaches() {
   }
 }
 
-function renderCoachCard(coach) {
+function renderInstructorCard(coach) {
   const blocked = (coach.blockedDates || [])
     .map(
       (b) =>
-        `<span class="inline-flex items-center gap-1 mr-2">${ui.formatDate(b.date)} (${leavePeriodLabel(b.period)})${b.reason ? ` — ${b.reason}` : ''}<button data-coach-action="unblock" data-id="${coach._id}" data-date="${new Date(b.date).toISOString().split('T')[0]}" class="text-brand-600 hover:underline">${t('admin.coachUnblock')}</button></span>`
+        `<span class="inline-flex items-center gap-1 mr-2">${ui.formatDate(b.date)} (${leavePeriodLabel(b.period)})${b.reason ? ` — ${b.reason}` : ''}<button data-instructor-action="unblock" data-id="${coach._id}" data-date="${new Date(b.date).toISOString().split('T')[0]}" class="text-brand-600 hover:underline">${t('admin.coachUnblock')}</button></span>`
     )
     .join('');
 
   return `
-    <div class="bg-white border rounded-xl p-5 shadow-sm ${coach.active ? '' : 'opacity-60'}" data-coach-id="${coach._id}">
+    <div class="bg-white border rounded-xl p-5 shadow-sm ${coach.active ? '' : 'opacity-60'}" data-instructor-id="${coach._id}">
       <div class="flex justify-between items-start gap-4">
         <div class="flex-1">
           <h3 class="font-semibold text-lg">${coach.name}
-            ${coach.isHeadCoach ? '<span class="text-xs bg-brand-100 text-brand-800 px-2 py-0.5 rounded ml-1">Head</span>' : ''}
+            ${coach.isHeadInstructor ? '<span class="text-xs bg-brand-100 text-brand-800 px-2 py-0.5 rounded ml-1">Head</span>' : ''}
             ${coach.isMainland ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">${t('admin.coachMainland')}</span>` : ''}
           </h3>
           <p class="text-sm text-slate-600 mt-1">${coach.phone || ''} ${coach.email ? '· ' + coach.email : ''}</p>
@@ -877,51 +905,52 @@ function renderCoachCard(coach) {
         </div>
         <div class="text-right space-y-2">
           <span class="text-xs block ${coach.active ? 'text-green-600' : 'text-red-600'}">${coach.active ? t('admin.coachActive') : t('admin.coachInactive')}</span>
-          <button data-coach-action="block" data-id="${coach._id}" class="block text-xs text-amber-600 hover:underline">${t('admin.coachLeave')}</button>
+          <button data-instructor-action="block" data-id="${coach._id}" class="block text-xs text-amber-600 hover:underline">${t('admin.coachLeave')}</button>
         </div>
       </div>
     </div>
   `;
 }
 
-function renderCoachForm() {
+function renderInstructorForm() {
   return `
-    <form id="createCoachForm" class="bg-white border rounded-xl p-6 shadow-sm grid md:grid-cols-2 gap-4">
-      <input name="name" placeholder="${t('admin.coachForm.namePh')}" required class="border rounded-lg px-3 py-2">
+    <form id="createInstructorForm" class="bg-white border rounded-xl p-6 shadow-sm grid md:grid-cols-2 gap-4">
+      <input name="name" placeholder="${t('admin.instructorForm.namePh')}" required class="border rounded-lg px-3 py-2">
       <input name="phone" placeholder="${t('public.phone')}" class="border rounded-lg px-3 py-2">
       <input name="email" placeholder="Email" type="email" class="border rounded-lg px-3 py-2">
+      <input name="pin" type="password" minlength="4" placeholder="${t('admin.instructorForm.pinPh')}" required class="border rounded-lg px-3 py-2">
       <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isMainland"> ${t('admin.coachMainland')}</label>
-      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isHeadCoach"> ${t('admin.headCoach')}</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isHeadInstructor"> ${t('admin.headInstructor')}</label>
       <div>
-        <p class="text-sm mb-1">${t('admin.coachForm.specialty')}</p>
+        <p class="text-sm mb-1">${t('admin.instructorForm.specialty')}</p>
         <label class="mr-3 text-sm"><input type="checkbox" name="specialties" value="ski"> ${t('enum.ski')}</label>
         <label class="text-sm"><input type="checkbox" name="specialties" value="snowboard"> ${t('enum.snowboard')}</label>
       </div>
       <div>
-        <p class="text-sm mb-1">${t('admin.coachForm.languages')}</p>
+        <p class="text-sm mb-1">${t('admin.instructorForm.languages')}</p>
         <label class="mr-3 text-sm"><input type="checkbox" name="languages" value="zh" checked> ${t('enum.zh')}</label>
         <label class="mr-3 text-sm"><input type="checkbox" name="languages" value="en"> ${t('enum.en')}</label>
         <label class="text-sm"><input type="checkbox" name="languages" value="ja"> ${t('enum.ja')}</label>
       </div>
       <div>
-        <p class="text-sm mb-1">${t('admin.coachForm.heatLevel')}</p>
+        <p class="text-sm mb-1">${t('admin.instructorForm.heatLevel')}</p>
         <select name="heatLevel" class="border rounded-lg px-3 py-2 w-full">
           ${heatLevelOptions('medium')}
         </select>
       </div>
       <div>
-        <p class="text-sm mb-1">${t('admin.coachForm.skillLevel')}</p>
+        <p class="text-sm mb-1">${t('admin.instructorForm.skillLevel')}</p>
         <input name="skillLevel" type="number" min="1" max="5" value="3" class="border rounded-lg px-3 py-2 w-full">
       </div>
       <div class="md:col-span-2">
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">${t('admin.coachForm.save')}</button>
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">${t('admin.instructorForm.save')}</button>
       </div>
     </form>
   `;
 }
 
-function bindCoachFormSubmit() {
-  const form = document.getElementById('createCoachForm');
+function bindInstructorFormSubmit() {
+  const form = document.getElementById('createInstructorForm');
   if (!form || form.dataset.bound) return;
   form.dataset.bound = 'true';
 
@@ -936,19 +965,20 @@ function bindCoachFormSubmit() {
     }
 
     try {
-      await api.createCoach({
+      await api.createInstructor({
         name: form.name.value,
         phone: form.phone.value,
         email: form.email.value,
         isMainland: form.isMainland.checked,
-        isHeadCoach: form.isHeadCoach.checked,
+        isHeadInstructor: form.isHeadInstructor.checked,
         specialties,
         languages: languages.length ? languages : ['zh'],
         heatLevel: form.heatLevel.value,
         skillLevel: Number(form.skillLevel.value),
+        pin: form.pin.value,
       });
-      ui.toast(t('admin.coachCreated'), 'success');
-      loadCoaches();
+      ui.toast(t('admin.instructorCreated'), 'success');
+      loadInstructors();
     } catch (err) {
       ui.toast(err.message, 'error');
     }
@@ -1003,8 +1033,12 @@ function renderNewBookingForm() {
       </div>
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <label class="text-sm block mb-1">${t('public.lessonDate')} *</label>
-          <input name="lessonDate" type="date" required class="border rounded-lg px-3 py-2 w-full">
+          <label class="text-sm block mb-1">${t('public.lessonDateFrom')} *</label>
+          <input name="lessonDateFrom" type="date" required class="border rounded-lg px-3 py-2 w-full">
+        </div>
+        <div>
+          <label class="text-sm block mb-1">${t('public.lessonDateTo')} *</label>
+          <input name="lessonDateTo" type="date" required class="border rounded-lg px-3 py-2 w-full">
         </div>
         <div>
           <label class="text-sm block mb-1">${t('public.duration')} *</label>
@@ -1043,7 +1077,7 @@ function renderNewBookingForm() {
           <input name="childrenUnder6" type="number" min="0" value="0" class="border rounded-lg px-3 py-2 w-full" id="childrenInput">
         </div>
       </div>
-      <p id="coachCalcResult" class="text-sm text-brand-700 font-medium"></p>
+      <p id="instructorCalcResult" class="text-sm text-brand-700 font-medium"></p>
       <input name="guestName" placeholder="${t('public.guestName')} *" required class="border rounded-lg px-3 py-2">
       <div class="grid md:grid-cols-2 gap-4">
         <input name="phone" placeholder="${t('public.phone')} *" required class="border rounded-lg px-3 py-2">
@@ -1064,29 +1098,38 @@ function renderNewBookingForm() {
     </form>
   `;
 
-  async function updateCoachCalc() {
+  async function updateInstructorCalc() {
     const totalGuests = Number(document.getElementById('totalGuestsInput').value);
     const childrenUnder6 = Number(document.getElementById('childrenInput').value);
     try {
-      const res = await api.calculateCoaches(totalGuests, childrenUnder6);
-      document.getElementById('coachCalcResult').textContent = t('admin.coachesNeeded', {
-        n: res.data.coachesRequired,
+      const res = await api.calculateInstructors(totalGuests, childrenUnder6);
+      document.getElementById('instructorCalcResult').textContent = t('admin.instructorsNeeded', {
+        n: res.data.instructorsRequired,
       });
     } catch {
-      document.getElementById('coachCalcResult').textContent = '';
+      document.getElementById('instructorCalcResult').textContent = '';
     }
   }
 
-  document.getElementById('totalGuestsInput').addEventListener('input', updateCoachCalc);
-  document.getElementById('childrenInput').addEventListener('input', updateCoachCalc);
-  updateCoachCalc();
+  document.getElementById('totalGuestsInput').addEventListener('input', updateInstructorCalc);
+  document.getElementById('childrenInput').addEventListener('input', updateInstructorCalc);
+  updateInstructorCalc();
 
-  document.getElementById('newBookingForm').addEventListener('submit', async (e) => {
+  const newBookingForm = document.getElementById('newBookingForm');
+  bindLessonDateRange(newBookingForm);
+  const today = new Date().toISOString().split('T')[0];
+  newBookingForm.lessonDateFrom.min = today;
+  newBookingForm.lessonDateTo.min = today;
+  newBookingForm.lessonDateFrom.value = today;
+  newBookingForm.lessonDateTo.value = today;
+
+  newBookingForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     try {
       await api.createBooking({
-        lessonDate: form.lessonDate.value,
+        lessonDateFrom: form.lessonDateFrom.value,
+        lessonDateTo: form.lessonDateTo.value,
         lessonStartTime: form.lessonStartTime.value,
         resortLocation: form.resortLocation.value,
         durationHours: Number(form.durationHours.value),
@@ -1108,7 +1151,7 @@ function renderNewBookingForm() {
         paymentStatus: 'pay_on_site',
       });
       ui.toast(t('admin.bookingCreated'), 'success');
-      pendingScheduleDate = form.lessonDate.value;
+      pendingScheduleDate = form.lessonDateFrom.value;
       navigate('schedule');
     } catch (err) {
       ui.toast(err.message, 'error');
@@ -1165,14 +1208,14 @@ function renderGanttChart({ timeSlots, rows, unassigned, locations, capacity }) 
   const chart = `
     <div class="min-w-[1200px]">
       <div class="grid border-b bg-slate-50 text-xs sticky top-0" style="grid-template-columns:120px repeat(${cols}, minmax(32px,1fr))">
-        <div class="p-2 font-medium border-r">${t('admin.ganttCoach')}</div>
+        <div class="p-2 font-medium border-r">${t('admin.ganttInstructor')}</div>
         ${timeSlots.map((s, i) => `<div class="p-1 text-center border-r ${i % 2 === 0 ? 'font-medium' : 'text-slate-400'}">${s.time}</div>`).join('')}
       </div>
       ${rows
         .map(
           (row) => `
         <div class="grid border-b relative" style="grid-template-columns:120px repeat(${cols}, minmax(32px,1fr)); min-height:56px">
-          <div class="p-2 text-sm font-medium border-r bg-slate-50">${row.coachName}</div>
+          <div class="p-2 text-sm font-medium border-r bg-slate-50">${row.instructorName}</div>
           ${timeSlots.map(() => `<div class="border-r min-h-[56px]"></div>`).join('')}
           ${(row.leaveBlocks || [])
             .map(
@@ -1249,7 +1292,7 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
     <div id="scheduleToolbar" class="flex flex-wrap gap-3 mb-4 items-center">
       <input type="date" id="scheduleDate" value="${startDate}" class="border rounded-lg px-3 py-2 text-sm">
       <button id="refreshSchedule" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('common.refresh')}</button>
-      <a href="/coach/" target="_blank" class="text-sm text-brand-600 hover:underline">${t('admin.coachViewLink')}</a>
+      <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline">${t('admin.coachViewLink')}</a>
     </div>
     <div id="scheduleBody"><p class="text-slate-500">${t('common.loading')}</p></div>
   `;
@@ -1276,16 +1319,47 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
         return;
       }
 
+      if (viewMode === 'week') {
+        const from = anchorDate;
+        const dates = Array.from({ length: 7 }, (_, i) => addDays(from, i));
+        const charts = await Promise.all(
+          dates.map((date) =>
+            api.getGantt({ date, headOnly: state.headOnly ? '1' : '0' }).then((res) => ({
+              date,
+              data: res.data,
+            }))
+          )
+        );
+        body.innerHTML = `
+          <div class="space-y-6">
+            ${charts
+              .map(
+                ({ date, data }) => `
+              <div class="border rounded-xl overflow-hidden">
+                <div class="bg-slate-50 px-4 py-2 text-sm font-medium border-b flex justify-between items-center">
+                  <span>${formatIsoDate(new Date(date + 'T12:00:00'))} · ${ui.formatDate(date)}</span>
+                  <button type="button" data-schedule-day="${date}" class="text-brand-600 hover:underline text-xs">${t('admin.viewDay')}</button>
+                </div>
+                <div class="overflow-x-auto p-2">${renderGanttChart(data)}</div>
+              </div>`
+              )
+              .join('')}
+          </div>`;
+        body.querySelectorAll('[data-schedule-day]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document.getElementById('scheduleDate').value = btn.dataset.scheduleDay;
+            setViewMode('day');
+            render();
+          });
+        });
+        return;
+      }
+
       let from;
       let to;
-      if (viewMode === 'week') {
-        from = anchorDate;
-        to = addDays(anchorDate, 6);
-      } else {
-        const range = monthRange(anchorDate);
-        from = range.from;
-        to = range.to;
-      }
+      const range = monthRange(anchorDate);
+      from = range.from;
+      to = range.to;
 
       const capRes = await api.getCapacity({ from, to, headOnly: state.headOnly ? '1' : '0' });
       body.innerHTML = renderCapacityGrid(capRes.data.days);
@@ -1458,12 +1532,13 @@ function bindPricingFormEvents(form, initialRegions) {
 
       block.querySelectorAll('[data-resort-row]').forEach((row) => {
         const rid = row.dataset.resortId;
+        const colorInput = row.querySelector(`input[name="resort-color-${rid}"]`);
         resorts.push({
           id: form.elements[`resort-id-${rid}`].value,
           name: form.elements[`resort-name-${rid}`].value,
           nameEn: form.elements[`resort-nameEn-${rid}`].value,
           region: key,
-          color: form.elements[`resort-color-${rid}`].value,
+          color: colorInput ? colorInput.value : '#D1D5DB',
           active: form.elements[`resort-active-${rid}`].checked,
         });
       });

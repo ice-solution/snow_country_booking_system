@@ -1,4 +1,4 @@
-const Coach = require('../models/Coach');
+const Instructor = require('../models/Instructor');
 const alertService = require('../services/alertService');
 const { normalizePeriod } = require('../utils/leavePeriods');
 
@@ -8,7 +8,7 @@ async function listCoaches(req, res, next) {
     const filter = {};
     if (active !== undefined) filter.active = active === 'true';
 
-    const coaches = await Coach.find(filter).sort({ name: 1 });
+    const coaches = await Instructor.find(filter).sort({ name: 1 });
     res.json({ success: true, data: coaches });
   } catch (err) {
     next(err);
@@ -17,7 +17,7 @@ async function listCoaches(req, res, next) {
 
 async function getCoach(req, res, next) {
   try {
-    const coach = await Coach.findById(req.params.id);
+    const coach = await Instructor.findById(req.params.id);
     if (!coach) {
       return res.status(404).json({ success: false, message: 'Coach not found' });
     }
@@ -29,7 +29,7 @@ async function getCoach(req, res, next) {
 
 async function createCoach(req, res, next) {
   try {
-    const coach = await Coach.create(req.body);
+    const coach = await Instructor.create(req.body);
     res.status(201).json({ success: true, data: coach });
   } catch (err) {
     next(err);
@@ -38,7 +38,7 @@ async function createCoach(req, res, next) {
 
 async function updateCoach(req, res, next) {
   try {
-    const coach = await Coach.findByIdAndUpdate(req.params.id, req.body, {
+    const coach = await Instructor.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     });
@@ -53,7 +53,7 @@ async function updateCoach(req, res, next) {
 
 async function deleteCoach(req, res, next) {
   try {
-    const coach = await Coach.findByIdAndUpdate(
+    const coach = await Instructor.findByIdAndUpdate(
       req.params.id,
       { active: false },
       { new: true }
@@ -70,7 +70,7 @@ async function deleteCoach(req, res, next) {
 async function blockDate(req, res, next) {
   try {
     const { date, reason, period } = req.body;
-    const coach = await Coach.findById(req.params.id);
+    const coach = await Instructor.findById(req.params.id);
     if (!coach) {
       return res.status(404).json({ success: false, message: 'Coach not found' });
     }
@@ -105,7 +105,7 @@ async function blockDate(req, res, next) {
 async function unblockDate(req, res, next) {
   try {
     const { date } = req.body;
-    const coach = await Coach.findById(req.params.id);
+    const coach = await Instructor.findById(req.params.id);
     if (!coach) {
       return res.status(404).json({ success: false, message: 'Coach not found' });
     }
@@ -128,7 +128,7 @@ async function unblockDate(req, res, next) {
 
 async function listPendingLeaveRequests(req, res, next) {
   try {
-    const coaches = await Coach.find({
+    const coaches = await Instructor.find({
       leaveRequests: { $elemMatch: { status: 'pending' } },
     }).select('name leaveRequests');
 
@@ -163,7 +163,7 @@ async function reviewLeaveRequest(req, res, next) {
       return res.status(400).json({ success: false, message: 'action must be approve or reject' });
     }
 
-    const coach = await Coach.findById(id);
+    const coach = await Instructor.findById(id);
     if (!coach) {
       return res.status(404).json({ success: false, message: 'Coach not found' });
     }

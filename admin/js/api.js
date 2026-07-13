@@ -34,17 +34,17 @@ const api = {
   getMeta: () => request('/meta'),
   getHealth: () => request('/health'),
 
-  listCoaches: (params = {}) => {
+  listInstructors: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return request(`/coaches${qs ? `?${qs}` : ''}`);
+    return request(`/instructors${qs ? `?${qs}` : ''}`);
   },
-  getCoach: (id) => request(`/coaches/${id}`),
-  createCoach: (body) => request('/coaches', { method: 'POST', body: JSON.stringify(body) }),
-  updateCoach: (id, body) =>
-    request(`/coaches/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteCoach: (id) => request(`/coaches/${id}`, { method: 'DELETE' }),
-  blockCoachDate: (id, body) =>
-    request(`/coaches/${id}/block-date`, { method: 'POST', body: JSON.stringify(body) }),
+  getInstructor: (id) => request(`/instructors/${id}`),
+  createInstructor: (body) => request('/instructors', { method: 'POST', body: JSON.stringify(body) }),
+  updateInstructor: (id, body) =>
+    request(`/instructors/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteInstructor: (id) => request(`/instructors/${id}`, { method: 'DELETE' }),
+  blockInstructorDate: (id, body) =>
+    request(`/instructors/${id}/block-date`, { method: 'POST', body: JSON.stringify(body) }),
 
   listBookings: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
@@ -64,24 +64,24 @@ const api = {
     request(`/bookings/${id}/resolve`, { method: 'POST', body: JSON.stringify(body) }),
   completeBooking: (id, body = {}) =>
     request(`/bookings/${id}/complete`, { method: 'POST', body: JSON.stringify(body) }),
-  suggestCoaches: (id, forReassign = false) =>
-    request(`/bookings/${id}/suggest-coaches${forReassign ? '?forReassign=1' : ''}`),
-  assignCoaches: (id, coachIds) =>
+  suggestInstructors: (id, forReassign = false) =>
+    request(`/bookings/${id}/suggest-instructors${forReassign ? '?forReassign=1' : ''}`),
+  assignInstructors: (id, instructorIds) =>
     request(`/bookings/${id}/assign`, {
       method: 'POST',
-      body: JSON.stringify({ coachIds, assignedBy: 'admin' }),
+      body: JSON.stringify({ instructorIds, assignedBy: 'admin' }),
     }),
-  reassignCoaches: (id, coachIds) =>
+  reassignInstructors: (id, instructorIds) =>
     request(`/bookings/${id}/reassign`, {
       method: 'POST',
-      body: JSON.stringify({ coachIds, assignedBy: 'admin' }),
+      body: JSON.stringify({ instructorIds, assignedBy: 'admin' }),
     }),
-  autoAssignCoaches: (id) =>
+  autoAssignInstructors: (id) =>
     request(`/bookings/${id}/auto-assign`, { method: 'POST' }),
-  autoReassignCoaches: (id) =>
+  autoReassignInstructors: (id) =>
     request(`/bookings/${id}/auto-reassign`, { method: 'POST' }),
-  calculateCoaches: (totalGuests, childrenUnder6) =>
-    request('/bookings/calculate-coaches', {
+  calculateInstructors: (totalGuests, childrenUnder6) =>
+    request('/bookings/calculate-instructors', {
       method: 'POST',
       body: JSON.stringify({ totalGuests, childrenUnder6 }),
     }),
@@ -101,9 +101,9 @@ const api = {
   },
   getPricing: () => request('/pricing'),
   updatePricing: (body) => request('/pricing', { method: 'PUT', body: JSON.stringify(body) }),
-  listPendingLeave: () => request('/coaches/leave-requests/pending'),
-  reviewLeave: (coachId, requestId, action) =>
-    request(`/coaches/${coachId}/leave-requests/${requestId}/review`, {
+  listPendingLeave: () => request('/instructors/leave-requests/pending'),
+  reviewLeave: (instructorId, requestId, action) =>
+    request(`/instructors/${instructorId}/leave-requests/${requestId}/review`, {
       method: 'POST',
       body: JSON.stringify({ action }),
     }),
@@ -112,8 +112,8 @@ const api = {
   importKlookEmail: (body) =>
     request('/integrations/klook/import', { method: 'POST', body: JSON.stringify(body) }),
   getIntegrationMeta: () => request('/integrations/meta'),
-  unblockCoachDate: (id, body) =>
-    request(`/coaches/${id}/unblock-date`, { method: 'POST', body: JSON.stringify(body) }),
+  unblockInstructorDate: (id, body) =>
+    request(`/instructors/${id}/unblock-date`, { method: 'POST', body: JSON.stringify(body) }),
 };
 
 window.api = api;

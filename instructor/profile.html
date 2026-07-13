@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <title data-i18n-title="instructor.profileTitle">個人資料 - Snow Country</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/shared/js/tailwind-brand.js"></script>
+  <link rel="stylesheet" href="/shared/css/brand.css">
+</head>
+<body class="bg-ink-50 min-h-screen">
+  <div id="loginGate" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white border border-ink-100 rounded-xl p-6 w-full max-w-sm shadow-sm">
+      <p class="text-sm text-slate-600 mb-3" data-i18n="instructor.loginRequired">請先登入</p>
+      <a href="/instructor/" class="text-brand-600 hover:underline text-sm" data-i18n="instructor.backToSchedule">返回課表</a>
+    </div>
+  </div>
+
+  <div id="appShell" class="hidden">
+    <header class="bg-ink-900 text-white px-4 py-4 flex justify-between items-start gap-4 border-b border-brand-500/30">
+      <div class="flex items-center gap-3">
+        <img src="/images/logo.png" alt="" class="h-9 w-9 object-contain">
+        <div>
+          <h1 class="text-lg font-bold" data-i18n="instructor.profileTitle">個人資料</h1>
+          <p id="instructorName" class="text-sm text-ink-300 mt-0.5"></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/instructor/" class="text-xs px-3 py-1.5 rounded-lg bg-ink-800 hover:bg-ink-700" data-i18n="instructor.backToSchedule">課表</a>
+        <div id="langSwitcherHeader" class="flex gap-1 bg-ink-800 rounded-lg p-0.5"></div>
+        <button id="logoutBtn" class="text-xs px-3 py-1.5 rounded-lg bg-ink-800 hover:bg-ink-700" data-i18n="instructor.logout">登出</button>
+      </div>
+    </header>
+
+    <main class="max-w-lg mx-auto p-4 space-y-4">
+      <div class="bg-white rounded-xl border border-ink-100 p-5">
+        <h2 class="font-semibold mb-4" data-i18n="instructor.profileInfo">基本資料</h2>
+        <form id="profileForm" class="space-y-3">
+          <label class="text-sm block">
+            <span data-i18n="admin.instructorForm.namePh">姓名</span>
+            <input type="text" name="name" required class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm block">
+            <span data-i18n="public.phone">電話</span>
+            <input type="tel" name="phone" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm block">
+            <span>Email</span>
+            <input type="email" name="email" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <fieldset class="text-sm">
+            <legend class="mb-2" data-i18n="admin.instructorForm.languages">語言</legend>
+            <label class="mr-4"><input type="checkbox" name="languages" value="zh"> <span data-i18n="enum.zh">中文</span></label>
+            <label class="mr-4"><input type="checkbox" name="languages" value="en"> <span data-i18n="enum.en">英文</span></label>
+            <label><input type="checkbox" name="languages" value="ja"> <span data-i18n="enum.ja">日文</span></label>
+          </fieldset>
+          <div class="pt-2 text-xs text-slate-500 space-y-1" id="readOnlyInfo"></div>
+          <button type="submit" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm" data-i18n="instructor.saveProfile">儲存資料</button>
+        </form>
+        <p id="profileMsg" class="text-sm mt-2 hidden"></p>
+      </div>
+
+      <div class="bg-white rounded-xl border border-ink-100 p-5">
+        <h2 class="font-semibold mb-4" data-i18n="instructor.changePin">修改 PIN 密碼</h2>
+        <form id="pinForm" class="space-y-3">
+          <label class="text-sm block">
+            <span data-i18n="instructor.currentPin">目前 PIN</span>
+            <input type="password" name="currentPin" required minlength="4" autocomplete="current-password" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm block">
+            <span data-i18n="instructor.newPin">新 PIN</span>
+            <input type="password" name="newPin" required minlength="4" autocomplete="new-password" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm block">
+            <span data-i18n="instructor.confirmPin">確認新 PIN</span>
+            <input type="password" name="confirmPin" required minlength="4" autocomplete="new-password" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <button type="submit" class="px-4 py-2 bg-ink-800 hover:bg-ink-700 text-white rounded-lg text-sm" data-i18n="instructor.updatePin">更新 PIN</button>
+        </form>
+        <p id="pinMsg" class="text-sm mt-2 hidden"></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="/shared/js/locales/zh.js"></script>
+  <script src="/shared/js/locales/en.js"></script>
+  <script src="/shared/js/i18n.js"></script>
+  <script src="/instructor/js/profile.js"></script>
+</body>
+</html>

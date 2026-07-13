@@ -1,0 +1,61 @@
+{
+  "name": "Snow Country LINE Adapter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "line-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a1acdf41-be18-4572-9ee7-5dac76ae1e2c",
+      "name": "LINE Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "32b31df7-cc55-42f1-b494-1c5ef6a01fb3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst secret = $env.LINE_CHANNEL_SECRET || '';\nconst token = $env.LINE_CHANNEL_ACCESS_TOKEN || '';\nconst coreUrl = ($env.SNOW_COUNTRY_N8N_CORE_URL || '').replace(/\\/$/, '');\n\nconst rawBody = $json.body ?? $json;\nconst signature = $headers['x-line-signature'] || $headers['X-Line-Signature'] || '';\n\nfunction verify(sig, body, sec) {\n  if (!sec) return true;\n  const hmac = crypto.createHmac('sha256', sec).update(JSON.stringify(body)).digest('base64');\n  return hmac === sig;\n}\n\nif (!verify(signature, rawBody, secret)) {\n  return [{ json: { statusCode: 401, body: 'invalid signature' } }];\n}\n\nconst events = rawBody.events || [];\nconst outputs = [];\n\nfor (const event of events) {\n  if (event.type !== 'message' || event.message?.type !== 'text') continue;\n  const userId = event.source?.userId;\n  const text = event.message.text;\n  const replyToken = event.replyToken;\n\n  const coreRes = await fetch(coreUrl, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ channel: 'line', userId, message: text }),\n  });\n  const core = await coreRes.json();\n  const replyText = core.replyText || '系統繁忙，請稍後再試。';\n\n  if (token && replyToken) {\n    await fetch('https://api.line.me/v2/bot/message/reply', {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        Authorization: 'Bearer ' + token,\n      },\n      body: JSON.stringify({ replyToken, messages: [{ type: 'text', text: replyText }] }),\n    });\n  }\n  outputs.push({ json: { userId, replyText } });\n}\n\nif (!outputs.length) outputs.push({ json: { ok: true, note: 'no text events' } });\nreturn outputs;\n"
+      },
+      "id": "b8324061-75f1-4ac0-8dcd-b1f02e909f9e",
+      "name": "LINE Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "LINE Webhook": {
+      "main": [
+        [
+          {
+            "node": "LINE Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "snow-country"
+    }
+  ]
+}

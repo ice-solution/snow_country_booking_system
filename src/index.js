@@ -1,11 +1,33 @@
 require('dotenv').config();
 const createApp = require('./app');
 const { connectDatabase } = require('./config/database');
+const Booking = require('./models/Booking');
 
 const PORT = process.env.PORT || 3000;
 
+async function migrateLessonDateRange() {
+  const result = await Booking.updateMany(
+    {
+      $or: [{ lessonDateFrom: { $exists: false } }, { lessonDateTo: { $exists: false } }],
+      lessonDate: { $exists: true },
+    },
+    [
+      {
+        $set: {
+          lessonDateFrom: '$lessonDate',
+          lessonDateTo: '$lessonDate',
+        },
+      },
+    ]
+  );
+  if (result.modifiedCount > 0) {
+    console.log(`Migrated ${result.modifiedCount} booking(s) to lesson date range fields`);
+  }
+}
+
 async function start() {
   await connectDatabase();
+  await migrateLessonDateRange();
   const app = createApp();
 
   app.listen(PORT, () => {

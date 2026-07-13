@@ -1,5 +1,15 @@
 const t = (key, vars) => i18n.t(key, vars);
 
+function formatGuestDateRange(g) {
+  const from = g.lessonDateFrom || g.lessonDate;
+  const to = g.lessonDateTo || g.lessonDateFrom || g.lessonDate;
+  const fromStr = ui.formatDate(from);
+  const toStr = ui.formatDate(to);
+  if (fromStr === toStr) return fromStr;
+  const dayCount = g.lessonDayCount || Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+  return `${fromStr} – ${toStr} (${dayCount} ${t('common.days')})`;
+}
+
 function field(label, value) {
   const display = value || '-';
   const href =
@@ -26,7 +36,7 @@ function renderGuest(g) {
       <section>
         <h2 class="font-semibold text-lg mb-3">${t('guest.lessonInfo')}</h2>
         <div class="grid sm:grid-cols-2 gap-4 text-sm">
-          ${field(t('admin.col.date'), `${ui.formatDate(g.lessonDate)} ${g.lessonStartTime} (${g.durationHours} ${t('common.hours')})`)}
+          ${field(t('admin.col.date'), `${formatGuestDateRange(g)} ${g.lessonStartTime} (${g.durationHours} ${t('common.hours')})`)}
           ${field(t('public.resort'), ui.resortLabel(g.resortLocation, g.region))}
           ${field(t('public.lessonType'), ui.label(g.lessonType))}
           ${field(t('public.languagePref'), ui.label(g.languagePref))}

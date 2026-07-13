@@ -1,6 +1,5 @@
 const Booking = require('../models/Booking');
-const Coach = require('../models/Coach');
-const { getResort } = require('../config/resorts');
+const Instructor = require('../models/Instructor');
 const catalogService = require('./catalogService');
 const { getLeaveBlocksForCoach } = require('../utils/leavePeriods');
 const {
@@ -9,12 +8,20 @@ const {
   durationToSlotSpan,
 } = require('../config/gantt');
 const { normalizeDate } = require('./scheduleService');
+const {
+  mongoOverlapsDay,
+  mongoOverlapsRange,
+  expandBookingToDateKeys,
+  getLessonDayCount,
+} = require('../utils/lessonDateRange');
 
 function buildLessonTag(booking) {
   const type = booking.lessonType === 'snowboard' ? 'SB' : 'SKI';
   const lang =
     booking.languagePref === 'zh' ? 'Chn' : booking.languagePref === 'en' ? 'Eng' : '';
-  return `${type}${lang ? ` - ${lang}` : ''}`.trim();
+  const dayCount = getLessonDayCount(booking);
+  const daySuffix = dayCount > 1 ? ` · ${dayCount}d` : '';
+  return `${type}${lang ? ` - ${lang}` : ''}${daySuffix}`.trim();
 }
 
 function buildBlockLabel(booking) {
@@ -22,21 +29,22 @@ function buildBlockLabel(booking) {
   return `${source}${booking.guestName} ${buildLessonTag(booking)}`.trim();
 }
 
-function bookingToBlock(booking, coachId, resortMap = null) {
-  const resort = resortMap?.[booking.resortLocation] || getResort(booking.resortLocation);
+function bookingToBlock(booking, instructorId, resortMap = null) {
+  const resort = resortMap?.[booking.resortLocation];
   const location = resort || { id: 'other', name: 'TBC', nameEn: 'TBC', color: '#D1D5DB' };
   const startSlot = timeToSlotIndex(booking.lessonStartTime || '09:00');
   const spanSlots = durationToSlotSpan(booking.durationHours);
 
   return {
     bookingId: booking._id,
-    coachId,
+    instructorId,
     guestName: booking.guestName,
     lessonType: booking.lessonType,
     source: booking.source,
     status: booking.status,
     durationHours: booking.durationHours,
     lessonStartTime: booking.lessonStartTime || '09:00',
+    lessonDayCount: getLessonDayCount(booking),
     location: location.id,
     locationName: location.name,
     color: location.color,
@@ -51,20 +59,19 @@ function bookingToBlock(booking, coachId, resortMap = null) {
   };
 }
 
-async function getGantt({ date, coachId, headOnly = false }) {
+async function getGantt({ date, instructorId, headOnly = false }) {
   const targetDate = normalizeDate(date || new Date());
-  const nextDay = new Date(targetDate.getTime() + 86400000);
 
   const bookingFilter = {
     status: { $in: ['confirmed', 'assigned', 'completed', 'needs_attention'] },
-    lessonDate: { $gte: targetDate, $lt: nextDay },
+    ...mongoOverlapsDay(targetDate),
   };
 
-  const coachFilter = { active: true };
-  if (coachId) coachFilter._id = coachId;
-  if (headOnly) coachFilter.isHeadCoach = true;
+  const instructorFilter = { active: true };
+  if (instructorId) instructorFilter._id = instructorId;
+  if (headOnly) instructorFilter.isHeadCoach = true;
 
-  const coaches = await Coach.find(coachFilter).sort({ name: 1 });
+  const instructors = await Instructor.find(instructorFilter).sort({ name: 1 });
 
   const bookings = await Booking.find(bookingFilter)
     .populate('assignedCoaches.coach', 'name')
@@ -75,17 +82,17 @@ async function getGantt({ date, coachId, headOnly = false }) {
   const locations = await catalogService.getResortsConfig();
   const rows = [];
 
-  for (const coach of coaches) {
-    const coachBookings = bookings.filter((b) =>
-      b.assignedCoaches.some((a) => a.coach?._id?.toString() === coach._id.toString())
+  for (const instructor of instructors) {
+    const instructorBookings = bookings.filter((b) =>
+      b.assignedCoaches.some((a) => a.coach?._id?.toString() === instructor._id.toString())
     );
 
     rows.push({
-      coachId: coach._id,
-      coachName: coach.name,
-      specialties: coach.specialties,
-      leaveBlocks: getLeaveBlocksForCoach(coach, targetDate, timeSlots.length),
-      blocks: coachBookings.map((b) => bookingToBlock(b, coach._id, resortMap)),
+      instructorId: instructor._id,
+      instructorName: instructor.name,
+      specialties: instructor.specialties,
+      leaveBlocks: getLeaveBlocksForCoach(instructor, targetDate, timeSlots.length),
+      blocks: instructorBookings.map((b) => bookingToBlock(b, instructor._id, resortMap)),
     });
   }
 
@@ -104,21 +111,21 @@ async function getGantt({ date, coachId, headOnly = false }) {
     locations,
     rows,
     unassigned,
-    totalCoaches: coaches.length,
+    totalInstructors: instructors.length,
     totalBookings: bookings.length,
     capacity,
     headOnly: Boolean(headOnly),
   };
 }
 
-async function getCoachSchedule(coachId, { from, to } = {}) {
+async function getInstructorSchedule(instructorId, { from, to } = {}) {
   const start = from ? normalizeDate(from) : normalizeDate(new Date());
   const end = to ? normalizeDate(to) : new Date(start.getTime() + 14 * 86400000);
   end.setHours(23, 59, 59, 999);
 
-  const coach = await Coach.findById(coachId);
-  if (!coach) {
-    const error = new Error('Coach not found');
+  const instructor = await Instructor.findById(instructorId);
+  if (!instructor) {
+    const error = new Error('Instructor not found');
     error.status = 404;
     throw error;
   }
@@ -127,25 +134,26 @@ async function getCoachSchedule(coachId, { from, to } = {}) {
 
   const bookings = await Booking.find({
     status: { $in: ['confirmed', 'assigned', 'completed', 'needs_attention'] },
-    lessonDate: { $gte: start, $lte: end },
-    'assignedCoaches.coach': coachId,
-  }).sort({ lessonDate: 1, lessonStartTime: 1 });
+    ...mongoOverlapsRange(start, end),
+    'assignedCoaches.coach': instructorId,
+  }).sort({ lessonDateFrom: 1, lessonStartTime: 1 });
 
   const byDate = {};
   for (const booking of bookings) {
-    const key = normalizeDate(booking.lessonDate).toISOString().split('T')[0];
-    if (!byDate[key]) byDate[key] = [];
-    byDate[key].push(bookingToBlock(booking, coachId, resortMap));
+    for (const key of expandBookingToDateKeys(booking, { from: start, to: end })) {
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(bookingToBlock(booking, instructorId, resortMap));
+    }
   }
 
   return {
-    coach: { id: coach._id, name: coach.name, specialties: coach.specialties },
+    instructor: { id: instructor._id, name: instructor.name, specialties: instructor.specialties },
     from: start,
     to: end,
     byDate,
-    bookings: bookings.map((b) => bookingToBlock(b, coachId, resortMap)),
+    bookings: bookings.map((b) => bookingToBlock(b, instructorId, resortMap)),
     locations: await catalogService.getResortsConfig(),
   };
 }
 
-module.exports = { getGantt, getCoachSchedule, bookingToBlock };
+module.exports = { getGantt, getInstructorSchedule, getCoachSchedule: getInstructorSchedule, bookingToBlock };
