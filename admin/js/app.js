@@ -1184,11 +1184,16 @@ function addDays(dateStr, n) {
   return formatIsoDate(d);
 }
 
-function monthRange(anchor) {
-  const d = new Date((anchor || formatIsoDate(new Date())) + 'T12:00:00');
-  const from = new Date(d.getFullYear(), d.getMonth(), 1);
-  const to = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  return { from: formatIsoDate(from), to: formatIsoDate(to) };
+const SCHEDULE_RANGE_MAX_DAYS = 31;
+
+function datesInRange(from, to) {
+  const dates = [];
+  let cursor = from;
+  while (cursor <= to) {
+    dates.push(cursor);
+    cursor = addDays(cursor, 1);
+  }
+  return dates;
 }
 
 function renderGanttChart({ timeSlots, rows, unassigned, locations, capacity }) {
@@ -1251,34 +1256,11 @@ function renderGanttChart({ timeSlots, rows, unassigned, locations, capacity }) 
   return `${capHtml}<div id="ganttLegend" class="flex flex-wrap gap-2 mb-4 text-xs">${legend}</div><div id="ganttChart" class="bg-white rounded-xl border overflow-x-auto">${chart}</div>${unassignedHtml}`;
 }
 
-function renderCapacityGrid(days) {
-  if (!days.length) return `<p class="text-slate-500 py-8 text-center">${t('admin.noSchedule')}</p>`;
-  return `
-    <p class="text-xs text-slate-500 mb-3">${t('admin.clickDayGantt')}</p>
-    <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-      ${days
-        .map((day) => {
-          const bg =
-            day.status === 'overbooked'
-              ? 'bg-red-50 border-red-200 hover:bg-red-100'
-              : day.status === 'tight'
-                ? 'bg-amber-50 border-amber-200 hover:bg-amber-100'
-                : 'bg-green-50 border-green-200 hover:bg-green-100';
-          return `
-          <button type="button" data-schedule-day="${day.date}" class="text-left border rounded-xl p-3 transition ${bg}">
-            <p class="font-medium text-sm">${ui.formatDate(day.date)}</p>
-            <p class="text-xs mt-1 text-slate-600">${day.demand}/${day.supply} slots</p>
-            <div class="mt-2">${capacityBadge(day)}</div>
-          </button>`;
-        })
-        .join('')}
-    </div>`;
-}
-
 async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
   const container = document.getElementById('content');
   const today = formatIsoDate(new Date());
   const startDate = initialDate || today;
+  const defaultRangeTo = addDays(startDate, 6);
   let viewMode = 'day';
   let anchorDate = startDate;
   const state = { headOnly };
@@ -1287,12 +1269,24 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
     <div class="flex flex-wrap gap-2 mb-4">
       <button data-schedule-view="day" class="schedule-view-btn px-3 py-1.5 rounded-lg text-sm border bg-brand-500 text-white">${t('admin.viewDay')}</button>
       <button data-schedule-view="week" class="schedule-view-btn px-3 py-1.5 rounded-lg text-sm border">${t('admin.viewWeek')}</button>
-      <button data-schedule-view="month" class="schedule-view-btn px-3 py-1.5 rounded-lg text-sm border">${t('admin.viewMonth')}</button>
+      <button data-schedule-view="range" class="schedule-view-btn px-3 py-1.5 rounded-lg text-sm border">${t('admin.viewRange')}</button>
     </div>
     <div id="scheduleToolbar" class="flex flex-wrap gap-3 mb-4 items-center">
       <input type="date" id="scheduleDate" value="${startDate}" class="border rounded-lg px-3 py-2 text-sm">
       <button id="refreshSchedule" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('common.refresh')}</button>
       <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline">${t('admin.coachViewLink')}</a>
+    </div>
+    <div id="scheduleRangeToolbar" class="hidden flex flex-wrap gap-3 mb-4 items-end">
+      <label class="text-sm">
+        <span class="block text-xs text-slate-500 mb-1">${t('admin.rangeFrom')}</span>
+        <input type="date" id="scheduleRangeFrom" value="${startDate}" class="border rounded-lg px-3 py-2 text-sm">
+      </label>
+      <label class="text-sm">
+        <span class="block text-xs text-slate-500 mb-1">${t('admin.rangeTo')}</span>
+        <input type="date" id="scheduleRangeTo" value="${defaultRangeTo}" class="border rounded-lg px-3 py-2 text-sm">
+      </label>
+      <button id="searchScheduleRange" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('admin.searchRange')}</button>
+      <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline pb-2">${t('admin.coachViewLink')}</a>
     </div>
     <div id="scheduleBody"><p class="text-slate-500">${t('common.loading')}</p></div>
   `;
@@ -1306,6 +1300,46 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
       btn.classList.toggle('border-brand-500', active);
     });
     document.getElementById('scheduleToolbar').classList.toggle('hidden', mode !== 'day');
+    document.getElementById('scheduleRangeToolbar').classList.toggle('hidden', mode !== 'range');
+  }
+
+  function bindDayLinks(root) {
+    root.querySelectorAll('[data-schedule-day]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.getElementById('scheduleDate').value = btn.dataset.scheduleDay;
+        setViewMode('day');
+        render();
+      });
+    });
+  }
+
+  async function renderRangeGanttCharts(dates) {
+    const body = document.getElementById('scheduleBody');
+    const charts = await Promise.all(
+      dates.map((date) =>
+        api.getGantt({ date, headOnly: state.headOnly ? '1' : '0' }).then((res) => ({
+          date,
+          data: res.data,
+        }))
+      )
+    );
+    body.innerHTML = `
+      <p class="text-xs text-slate-500 mb-3">${t('admin.rangeResult', { from: dates[0], to: dates[dates.length - 1], days: dates.length })}</p>
+      <div class="space-y-6">
+        ${charts
+          .map(
+            ({ date, data }) => `
+          <div class="border rounded-xl overflow-hidden">
+            <div class="bg-slate-50 px-4 py-2 text-sm font-medium border-b flex justify-between items-center">
+              <span>${formatIsoDate(new Date(date + 'T12:00:00'))} · ${ui.formatDate(date)}</span>
+              <button type="button" data-schedule-day="${date}" class="text-brand-600 hover:underline text-xs">${t('admin.viewDay')}</button>
+            </div>
+            <div class="overflow-x-auto p-2">${renderGanttChart(data)}</div>
+          </div>`
+          )
+          .join('')}
+      </div>`;
+    bindDayLinks(body);
   }
 
   async function render() {
@@ -1322,54 +1356,26 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
       if (viewMode === 'week') {
         const from = anchorDate;
         const dates = Array.from({ length: 7 }, (_, i) => addDays(from, i));
-        const charts = await Promise.all(
-          dates.map((date) =>
-            api.getGantt({ date, headOnly: state.headOnly ? '1' : '0' }).then((res) => ({
-              date,
-              data: res.data,
-            }))
-          )
-        );
-        body.innerHTML = `
-          <div class="space-y-6">
-            ${charts
-              .map(
-                ({ date, data }) => `
-              <div class="border rounded-xl overflow-hidden">
-                <div class="bg-slate-50 px-4 py-2 text-sm font-medium border-b flex justify-between items-center">
-                  <span>${formatIsoDate(new Date(date + 'T12:00:00'))} · ${ui.formatDate(date)}</span>
-                  <button type="button" data-schedule-day="${date}" class="text-brand-600 hover:underline text-xs">${t('admin.viewDay')}</button>
-                </div>
-                <div class="overflow-x-auto p-2">${renderGanttChart(data)}</div>
-              </div>`
-              )
-              .join('')}
-          </div>`;
-        body.querySelectorAll('[data-schedule-day]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            document.getElementById('scheduleDate').value = btn.dataset.scheduleDay;
-            setViewMode('day');
-            render();
-          });
-        });
+        await renderRangeGanttCharts(dates);
         return;
       }
 
-      let from;
-      let to;
-      const range = monthRange(anchorDate);
-      from = range.from;
-      to = range.to;
-
-      const capRes = await api.getCapacity({ from, to, headOnly: state.headOnly ? '1' : '0' });
-      body.innerHTML = renderCapacityGrid(capRes.data.days);
-      body.querySelectorAll('[data-schedule-day]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          document.getElementById('scheduleDate').value = btn.dataset.scheduleDay;
-          setViewMode('day');
-          render();
-        });
-      });
+      const from = document.getElementById('scheduleRangeFrom').value;
+      const to = document.getElementById('scheduleRangeTo').value;
+      if (!from || !to) {
+        body.innerHTML = `<p class="text-slate-500 py-8 text-center">${t('admin.rangeSelectDates')}</p>`;
+        return;
+      }
+      if (to < from) {
+        body.innerHTML = `<p class="text-red-600 py-8 text-center">${t('admin.rangeInvalid')}</p>`;
+        return;
+      }
+      const dates = datesInRange(from, to);
+      if (dates.length > SCHEDULE_RANGE_MAX_DAYS) {
+        body.innerHTML = `<p class="text-red-600 py-8 text-center">${t('admin.rangeTooLong', { max: SCHEDULE_RANGE_MAX_DAYS })}</p>`;
+        return;
+      }
+      await renderRangeGanttCharts(dates);
     } catch (err) {
       body.innerHTML = `<p class="text-red-600">${err.message}</p>`;
     }
@@ -1377,8 +1383,18 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
 
   container.querySelectorAll('[data-schedule-view]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      setViewMode(btn.dataset.scheduleView);
-      if (btn.dataset.scheduleView !== 'day') anchorDate = document.getElementById('scheduleDate').value;
+      const nextMode = btn.dataset.scheduleView;
+      if (nextMode !== 'day') {
+        anchorDate = document.getElementById('scheduleDate').value;
+        if (nextMode === 'range') {
+          document.getElementById('scheduleRangeFrom').value = anchorDate;
+          const toInput = document.getElementById('scheduleRangeTo');
+          if (!toInput.value || toInput.value < anchorDate) {
+            toInput.value = addDays(anchorDate, 6);
+          }
+        }
+      }
+      setViewMode(nextMode);
       render();
     });
   });
@@ -1387,6 +1403,13 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
   document.getElementById('scheduleDate').addEventListener('change', () => {
     anchorDate = document.getElementById('scheduleDate').value;
     if (viewMode === 'day') render();
+  });
+  document.getElementById('searchScheduleRange').addEventListener('click', render);
+  document.getElementById('scheduleRangeFrom').addEventListener('change', () => {
+    const fromInput = document.getElementById('scheduleRangeFrom');
+    const toInput = document.getElementById('scheduleRangeTo');
+    toInput.min = fromInput.value;
+    if (toInput.value < fromInput.value) toInput.value = fromInput.value;
   });
 
   setViewMode('day');

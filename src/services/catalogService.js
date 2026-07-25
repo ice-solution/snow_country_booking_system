@@ -107,22 +107,18 @@ async function loadCatalog() {
 
   let regions = defaults.regions;
   if (pricingDoc?.regions?.length) {
-    const byId = Object.fromEntries(pricingDoc.regions.map((r) => [r.id, r]));
-    const merged = defaults.regions.map((r) => ({
-      ...r,
-      ...byId[r.id],
-      prices: normalizePrices(byId[r.id]?.prices || pricingDoc.regionPrices?.[r.id] || r.prices),
-    }));
-    const extra = pricingDoc.regions
-      .filter((r) => !defaults.regions.some((d) => d.id === r.id))
-      .map((r) => ({
+    // Saved catalog is authoritative — missing default regions were intentionally deleted.
+    const defaultById = Object.fromEntries(defaults.regions.map((r) => [r.id, r]));
+    regions = pricingDoc.regions.map((r) => {
+      const base = defaultById[r.id] || {};
+      return {
         id: r.id,
-        name: r.name,
-        nameEn: r.nameEn || r.name,
-        description: r.description || '',
-        prices: normalizePrices(r.prices || pricingDoc.regionPrices?.[r.id]),
-      }));
-    regions = [...merged, ...extra];
+        name: r.name || base.name || r.id,
+        nameEn: r.nameEn || base.nameEn || r.name || r.id,
+        description: r.description ?? base.description ?? '',
+        prices: normalizePrices(r.prices || pricingDoc.regionPrices?.[r.id] || base.prices),
+      };
+    });
   } else if (pricingDoc?.regionPrices) {
     regions = regions.map((r) => ({
       ...r,
@@ -132,21 +128,21 @@ async function loadCatalog() {
 
   let resorts = defaults.resorts;
   if (resortDoc?.resorts?.length) {
-    const byId = Object.fromEntries(resortDoc.resorts.map((r) => [r.id, r]));
-    const merged = defaults.resorts.map((r) => {
-      const saved = byId[r.id];
-      if (!saved) return r;
-      return {
-        ...r,
-        ...saved,
-        color: saved.color || r.color,
-        name: saved.name || r.name,
-        nameEn: saved.nameEn || r.nameEn,
-        active: saved.active !== undefined ? saved.active : r.active,
-      };
-    });
-    const extra = resortDoc.resorts.filter((r) => !defaults.resorts.some((d) => d.id === r.id));
-    resorts = [...merged, ...extra.filter((r) => r.id !== 'other')];
+    // Saved catalog is authoritative — missing default resorts were intentionally deleted.
+    const defaultById = Object.fromEntries(defaults.resorts.map((r) => [r.id, r]));
+    resorts = resortDoc.resorts
+      .filter((r) => r.id !== 'other')
+      .map((r) => {
+        const base = defaultById[r.id] || {};
+        return {
+          id: r.id,
+          name: r.name || base.name || r.id,
+          nameEn: r.nameEn || base.nameEn || r.name || r.id,
+          region: r.region || base.region,
+          color: r.color || base.color || '#D1D5DB',
+          active: r.active !== undefined ? r.active : base.active !== false,
+        };
+      });
   }
 
   const regionMap = Object.fromEntries(regions.map((r) => [r.id, r]));
