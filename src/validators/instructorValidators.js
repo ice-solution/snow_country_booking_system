@@ -30,6 +30,7 @@ const instructorValidators = {
     body('skillLevel').optional().isInt({ min: 1, max: 5 }),
     body('isHeadInstructor').optional().isBoolean(),
     body('isHeadCoach').optional().isBoolean(),
+    body('active').optional().isBoolean(),
     body('pin').optional().isLength({ min: 4, max: 32 }),
   ],
   blockDate: [

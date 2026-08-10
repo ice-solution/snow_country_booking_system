@@ -90,6 +90,19 @@ const bookingValidators = {
     body('coachIds.*').optional().isMongoId(),
     body('assignedBy').optional().trim(),
   ],
+  moveSlot: [
+    param('id').isMongoId(),
+    body('toDate').matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('toDate must be YYYY-MM-DD'),
+    body('toStartTime').optional().matches(/^\d{2}:\d{2}$/),
+    body('toDurationHours')
+      .optional()
+      .custom((v) => Booking.DURATION_HOURS.includes(Number(v))),
+    body('slotIndex').optional().isInt({ min: 0 }),
+    body('fromDate').optional().matches(/^\d{4}-\d{2}-\d{2}$/),
+    body('fromStartTime').optional().matches(/^\d{2}:\d{2}$/),
+    body('fromInstructorId').optional().isMongoId(),
+    body('toInstructorId').optional().isMongoId(),
+  ],
   calculate: [
     body('totalGuests').isInt({ min: 1 }),
     body('childrenUnder6').optional().isInt({ min: 0 }),

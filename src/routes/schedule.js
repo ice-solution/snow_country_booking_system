@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.use(requireAdminKey);
 router.get('/', scheduleController.getSchedule);
+router.get('/board', scheduleController.getScheduleBoard);
 
 module.exports = router;

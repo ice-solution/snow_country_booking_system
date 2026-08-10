@@ -13,6 +13,8 @@ const {
   mongoOverlapsRange,
   expandBookingToDateKeys,
   getLessonDayCount,
+  bookingOverlapsDay,
+  getSlotsOnDay,
 } = require('../utils/lessonDateRange');
 
 function buildLessonTag(booking) {
@@ -29,11 +31,14 @@ function buildBlockLabel(booking) {
   return `${source}${booking.guestName} ${buildLessonTag(booking)}`.trim();
 }
 
-function bookingToBlock(booking, instructorId, resortMap = null) {
+function bookingToBlock(booking, instructorId, resortMap = null, date = null) {
   const resort = resortMap?.[booking.resortLocation];
   const location = resort || { id: 'other', name: 'TBC', nameEn: 'TBC', color: '#D1D5DB' };
-  const startSlot = timeToSlotIndex(booking.lessonStartTime || '09:00');
-  const spanSlots = durationToSlotSpan(booking.durationHours);
+  const slot = date ? getSlotsOnDay(booking, date)[0] : null;
+  const startTime = slot?.startTime || booking.lessonStartTime || '09:00';
+  const durationHours = slot?.durationHours || booking.durationHours;
+  const startSlot = timeToSlotIndex(startTime);
+  const spanSlots = durationToSlotSpan(durationHours);
 
   return {
     bookingId: booking._id,
@@ -42,8 +47,8 @@ function bookingToBlock(booking, instructorId, resortMap = null) {
     lessonType: booking.lessonType,
     source: booking.source,
     status: booking.status,
-    durationHours: booking.durationHours,
-    lessonStartTime: booking.lessonStartTime || '09:00',
+    durationHours,
+    lessonStartTime: startTime,
     lessonDayCount: getLessonDayCount(booking),
     location: location.id,
     locationName: location.name,
@@ -73,9 +78,9 @@ async function getGantt({ date, instructorId, headOnly = false }) {
 
   const instructors = await Instructor.find(instructorFilter).sort({ name: 1 });
 
-  const bookings = await Booking.find(bookingFilter)
+  const bookings = (await Booking.find(bookingFilter)
     .populate('assignedCoaches.coach', 'name')
-    .sort({ lessonStartTime: 1 });
+    .sort({ lessonStartTime: 1 })).filter((b) => bookingOverlapsDay(b, targetDate));
 
   const timeSlots = generateTimeSlots();
   const resortMap = await catalogService.getResortMap();
@@ -92,13 +97,13 @@ async function getGantt({ date, instructorId, headOnly = false }) {
       instructorName: instructor.name,
       specialties: instructor.specialties,
       leaveBlocks: getLeaveBlocksForCoach(instructor, targetDate, timeSlots.length),
-      blocks: instructorBookings.map((b) => bookingToBlock(b, instructor._id, resortMap)),
+      blocks: instructorBookings.map((b) => bookingToBlock(b, instructor._id, resortMap, targetDate)),
     });
   }
 
   const unassigned = bookings
     .filter((b) => !b.assignedCoaches?.length)
-    .map((b) => bookingToBlock(b, null, resortMap));
+    .map((b) => bookingToBlock(b, null, resortMap, targetDate));
 
   const { getDailyCapacity } = require('./capacityService');
   const capacity = await getDailyCapacity(targetDate, { headOnly });
@@ -142,7 +147,7 @@ async function getInstructorSchedule(instructorId, { from, to } = {}) {
   for (const booking of bookings) {
     for (const key of expandBookingToDateKeys(booking, { from: start, to: end })) {
       if (!byDate[key]) byDate[key] = [];
-      byDate[key].push(bookingToBlock(booking, instructorId, resortMap));
+      byDate[key].push(bookingToBlock(booking, instructorId, resortMap, key));
     }
   }
 

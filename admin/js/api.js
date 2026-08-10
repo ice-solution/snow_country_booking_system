@@ -91,6 +91,12 @@ const api = {
     const qs = new URLSearchParams(params).toString();
     return request(`/schedule${qs ? `?${qs}` : ''}`);
   },
+  getScheduleBoard: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/schedule/board${qs ? `?${qs}` : ''}`);
+  },
+  moveLessonSlot: (id, body) =>
+    request(`/bookings/${id}/move-slot`, { method: 'POST', body: JSON.stringify(body) }),
   getGantt: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/gantt${qs ? `?${qs}` : ''}`);

@@ -47,5 +47,12 @@ router.post(
 );
 router.post('/:id/auto-assign', requireAdminKey, bookingController.autoAssignInstructors);
 router.post('/:id/auto-reassign', requireAdminKey, bookingController.autoReassignInstructors);
+router.post(
+  '/:id/move-slot',
+  requireAdminKey,
+  bookingValidators.moveSlot,
+  validate,
+  bookingController.moveLessonSlot
+);
 
 module.exports = router;

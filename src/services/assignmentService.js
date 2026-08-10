@@ -1,7 +1,7 @@
 const Booking = require('../models/Booking');
 const Instructor = require('../models/Instructor');
 const { calculateCoachesRequired } = require('../utils/coachRequirement');
-const { bookingsOverlap, formatTimeRange } = require('../utils/timeOverlap');
+const { bookingsOverlapOnDay, formatTimeRange } = require('../utils/timeOverlap');
 const {
   isCoachBlockedForBookingOnDate,
 } = require('../utils/leavePeriods');
@@ -9,6 +9,7 @@ const {
   getLessonDays,
   getLessonDayCount,
   mongoOverlapsDay,
+  bookingOverlapsDay,
   toIsoDate,
 } = require('../utils/lessonDateRange');
 
@@ -55,7 +56,7 @@ function scoreCoachWithBreakdown(coach, booking) {
 
   const dayCount = getLessonDayCount(booking);
   if (dayCount > 1) {
-    breakdown.push({ factor: `${dayCount}-day consecutive booking`, points: 0 });
+    breakdown.push({ factor: `${dayCount}-slot booking`, points: 0 });
   }
 
   return { score, breakdown };
@@ -73,12 +74,13 @@ async function getCoachBookingsOnDate(coachId, lessonDate, excludeBookingId = nu
   };
   if (excludeBookingId) filter._id = { $ne: excludeBookingId };
 
-  return Booking.find(filter);
+  const bookings = await Booking.find(filter);
+  return bookings.filter((b) => bookingOverlapsDay(b, lessonDate));
 }
 
 async function findTimeConflict(coachId, booking, day, excludeBookingId = null) {
   const existing = await getCoachBookingsOnDate(coachId, day, excludeBookingId);
-  return existing.find((b) => bookingsOverlap(booking, b)) || null;
+  return existing.find((b) => bookingsOverlapOnDay(booking, b, day)) || null;
 }
 
 async function getDailyLessonCount(coachId, lessonDate, excludeBookingId = null) {
@@ -358,6 +360,7 @@ module.exports = {
   autoAssignCoaches,
   autoReassignCoaches,
   getAvailableCoachesForBooking,
+  coachPassesAllLessonDays,
   scoreCoach,
   findTimeConflict,
 };

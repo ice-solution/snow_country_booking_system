@@ -1,6 +1,16 @@
 const t = (key, vars) => i18n.t(key, vars);
 
 function formatGuestDateRange(g) {
+  if (Array.isArray(g.lessonSlots) && g.lessonSlots.length) {
+    if (g.lessonSlots.length === 1) {
+      const s = g.lessonSlots[0];
+      return `${ui.formatDate(s.date)} ${s.startTime || g.lessonStartTime || '09:00'} (${s.durationHours || g.durationHours}h)`;
+    }
+    return (
+      g.lessonSlots.map((s) => `${ui.formatDate(s.date)} ${s.startTime || '09:00'}`).join(i18n.getLang() === 'en' ? ', ' : '、') +
+      ` (${g.lessonSlots.length} ${t('public.slotsUnit')})`
+    );
+  }
   const from = g.lessonDateFrom || g.lessonDate;
   const to = g.lessonDateTo || g.lessonDateFrom || g.lessonDate;
   const fromStr = ui.formatDate(from);
@@ -36,14 +46,15 @@ function renderGuest(g) {
       <section>
         <h2 class="font-semibold text-lg mb-3">${t('guest.lessonInfo')}</h2>
         <div class="grid sm:grid-cols-2 gap-4 text-sm">
-          ${field(t('admin.col.date'), `${formatGuestDateRange(g)} ${g.lessonStartTime} (${g.durationHours} ${t('common.hours')})`)}
+          ${field(t('admin.col.date'), formatGuestDateRange(g))}
           ${field(t('public.resort'), ui.resortLabel(g.resortLocation, g.region))}
           ${field(t('public.lessonType'), ui.label(g.lessonType))}
           ${field(t('public.languagePref'), ui.label(g.languagePref))}
           ${field(t('public.totalGuests'), `${g.totalGuests} ${t('common.people')}`)}
           ${field(t('public.childrenUnder6'), String(g.childrenUnder6))}
-          ${field(t('public.coachesRequired'), String(g.coachesRequired))}
-          ${g.assignedCoaches?.length ? field(t('admin.assignedCoaches'), g.assignedCoaches.join(', ')) : ''}
+          ${field(t('public.instructorsRequired'), String(g.instructorsRequired || g.coachesRequired))}
+          ${g.assignedInstructors?.length ? field(t('admin.assignedInstructors'), g.assignedInstructors.join(', ')) : ''}
+          ${g.assignedCoaches?.length && !g.assignedInstructors?.length ? field(t('admin.assignedInstructors'), g.assignedCoaches.join(', ')) : ''}
         </div>
       </section>
 

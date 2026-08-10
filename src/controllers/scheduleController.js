@@ -1,4 +1,5 @@
 const scheduleService = require('../services/scheduleService');
+const scheduleMoveService = require('../services/scheduleMoveService');
 
 async function getSchedule(req, res, next) {
   try {
@@ -10,4 +11,17 @@ async function getSchedule(req, res, next) {
   }
 }
 
-module.exports = { getSchedule };
+async function getScheduleBoard(req, res, next) {
+  try {
+    const { from, to } = req.query;
+    if (!from || !to) {
+      return res.status(400).json({ success: false, message: 'from and to are required' });
+    }
+    const data = await scheduleMoveService.getScheduleBoard({ from, to });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getSchedule, getScheduleBoard };

@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
-const { syncBookingLessonDates } = require('../utils/lessonDateRange');
+const {
+  syncBookingLessonDates,
+  getLessonDayCount,
+  hasLessonSlots,
+} = require('../utils/lessonDateRange');
 
 const BOOKING_SOURCES = ['website', 'klook', 'whatsapp', 'line', 'webchat', 'admin'];
 const BOOKING_STATUSES = [
@@ -26,6 +30,15 @@ const assignedCoachSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const lessonSlotSchema = new mongoose.Schema(
+  {
+    date: { type: Date, required: true },
+    startTime: { type: String, trim: true, default: '09:00' },
+    durationHours: { type: Number, enum: DURATION_HOURS, required: true },
+  },
+  { _id: false }
+);
+
 const bookingSchema = new mongoose.Schema(
   {
     source: { type: String, enum: BOOKING_SOURCES, default: 'website' },
@@ -34,6 +47,7 @@ const bookingSchema = new mongoose.Schema(
     lessonDateFrom: { type: Date, required: true },
     lessonDateTo: { type: Date, required: true },
     lessonDate: { type: Date, required: true },
+    lessonSlots: { type: [lessonSlotSchema], default: undefined },
     durationHours: { type: Number, enum: DURATION_HOURS, required: true },
     region: { type: String, required: true, trim: true },
     resortLocation: { type: String, required: true, trim: true },
@@ -87,13 +101,7 @@ const bookingSchema = new mongoose.Schema(
           }));
           delete ret.assignedCoaches;
         }
-        if (ret.lessonDateFrom && ret.lessonDateTo) {
-          const from = new Date(ret.lessonDateFrom);
-          const to = new Date(ret.lessonDateTo);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(0, 0, 0, 0);
-          ret.lessonDayCount = Math.round((to - from) / 86400000) + 1;
-        }
+        ret.lessonDayCount = getLessonDayCount(ret);
         return ret;
       },
     },
@@ -113,6 +121,9 @@ bookingSchema.pre('validate', async function validateLessonDates(next) {
     syncBookingLessonDates(this);
     if (this.lessonDateTo < this.lessonDateFrom) {
       return next(new Error('lessonDateTo must be on or after lessonDateFrom'));
+    }
+    if (hasLessonSlots(this) && !this.lessonSlots.length) {
+      return next(new Error('At least one lesson timeslot is required'));
     }
     const catalogService = require('../services/catalogService');
     if (this.resortLocation) {

@@ -77,13 +77,23 @@
   }
 
   function formatLessonDateRange(booking) {
+    if (Array.isArray(booking.lessonSlots) && booking.lessonSlots.length) {
+      const slots = booking.lessonSlots;
+      if (slots.length === 1) {
+        const s = slots[0];
+        return `${formatDate(s.date)} ${s.startTime || booking.lessonStartTime || '09:00'} (${s.durationHours || booking.durationHours}h)`;
+      }
+      return slots
+        .map((s) => `${formatDate(s.date)} ${s.startTime || '09:00'}`)
+        .join(window.i18n?.getLang?.() === 'en' ? ', ' : '、') + ` (${slots.length} ${tr('public.slotsUnit')})`;
+    }
     const from = booking.lessonDateFrom || booking.lessonDate;
     const to = booking.lessonDateTo || booking.lessonDateFrom || booking.lessonDate;
     if (!from) return '-';
     const fromStr = formatDate(from);
     const toStr = formatDate(to);
     if (fromStr === toStr) return fromStr;
-    const dayCount = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+    const dayCount = booking.lessonDayCount || Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
     return `${fromStr} – ${toStr} (${dayCount} ${tr('common.days')})`;
   }
 

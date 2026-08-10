@@ -39,24 +39,13 @@
             <p class="text-xs text-slate-500 mt-1" data-i18n="public.resortHint">同地區滑雪場收費相同，請選擇實際上課雪場</p>
           </div>
 
-          <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1.5" data-i18n="public.lessonDateFrom">開始日期 *</label>
-              <input name="lessonDateFrom" type="date" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="block text-sm font-medium" data-i18n="public.timeslots">上課時段 *</label>
+              <button type="button" id="addTimeslotBtn" class="text-sm text-brand-600 hover:underline" data-i18n="public.addTimeslot">+ 新增時段</button>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1.5" data-i18n="public.lessonDateTo">結束日期 *</label>
-              <input name="lessonDateTo" type="date" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1.5" data-i18n="public.duration">上課時數 *</label>
-              <select name="durationHours" required class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none" id="durationSelect">
-                <option value="3">3</option>
-                <option value="4" selected>4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-              </select>
-            </div>
+            <p class="text-xs text-slate-500 mb-3" data-i18n="public.timeslotsHint">可逐一加入每個上課日期與時間，不需連續日期</p>
+            <div id="timeslotsList" class="space-y-3"></div>
           </div>
 
           <div class="grid sm:grid-cols-2 gap-4">
@@ -85,7 +74,7 @@
             <div>
               <label class="block text-sm font-medium mb-1.5" data-i18n="public.childrenUnder6">6 歲以下小童人數</label>
               <input name="childrenUnder6" type="number" min="0" value="0" class="w-full border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none">
-              <p class="text-xs text-slate-500 mt-1" data-i18n="public.childrenHint">如有 2 位或以上 6 歲以下小童，需要 2 位教練</p>
+              <p class="text-xs text-slate-500 mt-1" data-i18n="public.childrenHint">如有 2 位或以上 6 歲以下小童，需要 2 位導師</p>
             </div>
           </div>
 

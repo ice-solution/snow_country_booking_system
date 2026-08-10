@@ -1,9 +1,44 @@
 let pricing = null;
 let stripeEnabled = false;
 let resortMap = {};
+let timeslots = [];
+let slotSeq = 0;
 
 function tr(key, vars) {
   return i18n.t(key, vars);
+}
+
+function todayIso() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function startTimeOptions(selected = '09:00') {
+  const options = [];
+  for (let mins = 8 * 60 + 30; mins <= 16 * 60; mins += 30) {
+    const h = String(Math.floor(mins / 60)).padStart(2, '0');
+    const m = String(mins % 60).padStart(2, '0');
+    const time = `${h}:${m}`;
+    options.push(`<option value="${time}" ${time === selected ? 'selected' : ''}>${time}</option>`);
+  }
+  return options.join('');
+}
+
+function durationOptions(selected = 4) {
+  return [3, 4, 5, 6]
+    .map(
+      (h) =>
+        `<option value="${h}" ${Number(selected) === h ? 'selected' : ''}>${h} ${tr('common.hours')}</option>`
+    )
+    .join('');
+}
+
+function createSlot(partial = {}) {
+  return {
+    id: `slot-${++slotSeq}`,
+    date: partial.date || todayIso(),
+    startTime: partial.startTime || '09:00',
+    durationHours: Number(partial.durationHours) || 4,
+  };
 }
 
 function boot() {
@@ -18,24 +53,25 @@ async function init() {
     showAlert(tr('public.cancelledMsg'), 'warning');
   }
 
-  const today = new Date().toISOString().split('T')[0];
-  const form = document.getElementById('bookingForm');
-  form.lessonDateFrom.min = today;
-  form.lessonDateTo.min = today;
-  form.lessonDateFrom.value = today;
-  form.lessonDateTo.value = today;
-  form.lessonDateFrom.addEventListener('change', () => {
-    form.lessonDateTo.min = form.lessonDateFrom.value;
-    if (form.lessonDateTo.value < form.lessonDateFrom.value) {
-      form.lessonDateTo.value = form.lessonDateFrom.value;
-    }
+  timeslots = [createSlot()];
+  renderTimeslots();
+
+  document.getElementById('addTimeslotBtn').addEventListener('click', () => {
+    const last = timeslots[timeslots.length - 1];
+    timeslots.push(
+      createSlot({
+        date: last?.date || todayIso(),
+        startTime: last?.startTime || '09:00',
+        durationHours: last?.durationHours || 4,
+      })
+    );
+    renderTimeslots();
     updateQuote();
   });
-  updateDurationLabels();
 
   window.addEventListener('langchange', () => {
     i18n.applyPage();
-    updateDurationLabels();
+    renderTimeslots();
     renderResortOptions();
     renderPricing();
     toggleStripeOption();
@@ -64,13 +100,57 @@ async function init() {
   updateQuote();
 }
 
-function updateDurationLabels() {
-  const select = document.getElementById('durationSelect');
-  if (!select) return;
-  const val = select.value;
-  select.innerHTML = [3, 4, 5, 6]
-    .map((h) => `<option value="${h}" ${String(h) === val ? 'selected' : ''}>${h} ${tr('common.hours')}</option>`)
+function renderTimeslots() {
+  const list = document.getElementById('timeslotsList');
+  const today = todayIso();
+  list.innerHTML = timeslots
+    .map(
+      (slot, index) => `
+    <div class="border rounded-xl p-3 bg-slate-50" data-slot-id="${slot.id}">
+      <div class="flex justify-between items-center mb-2">
+        <p class="text-xs font-medium text-slate-500">${tr('public.timeslotN', { n: index + 1 })}</p>
+        <button type="button" data-remove-slot="${slot.id}" class="text-xs text-red-600 hover:underline ${timeslots.length <= 1 ? 'invisible' : ''}">${tr('public.removeTimeslot')}</button>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <label class="text-sm block">
+          <span class="text-slate-500 text-xs">${tr('public.lessonDate')}</span>
+          <input type="date" data-slot-field="date" data-slot-id="${slot.id}" value="${slot.date}" min="${today}" required class="mt-1 w-full border rounded-lg px-3 py-2 bg-white">
+        </label>
+        <label class="text-sm block">
+          <span class="text-slate-500 text-xs">${tr('public.startTime')}</span>
+          <select data-slot-field="startTime" data-slot-id="${slot.id}" class="mt-1 w-full border rounded-lg px-3 py-2 bg-white">
+            ${startTimeOptions(slot.startTime)}
+          </select>
+        </label>
+        <label class="text-sm block">
+          <span class="text-slate-500 text-xs">${tr('public.duration')}</span>
+          <select data-slot-field="durationHours" data-slot-id="${slot.id}" class="mt-1 w-full border rounded-lg px-3 py-2 bg-white">
+            ${durationOptions(slot.durationHours)}
+          </select>
+        </label>
+      </div>
+    </div>`
+    )
     .join('');
+
+  list.querySelectorAll('[data-remove-slot]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (timeslots.length <= 1) return;
+      timeslots = timeslots.filter((s) => s.id !== btn.dataset.removeSlot);
+      renderTimeslots();
+      updateQuote();
+    });
+  });
+
+  list.querySelectorAll('[data-slot-field]').forEach((input) => {
+    input.addEventListener('change', () => {
+      const slot = timeslots.find((s) => s.id === input.dataset.slotId);
+      if (!slot) return;
+      const field = input.dataset.slotField;
+      slot[field] = field === 'durationHours' ? Number(input.value) : input.value;
+      updateQuote();
+    });
+  });
 }
 
 function debounce(fn, ms) {
@@ -159,13 +239,21 @@ function toggleStripeOption() {
   }
 }
 
+function getLessonSlotsPayload() {
+  return timeslots.map((s) => ({
+    date: s.date,
+    startTime: s.startTime,
+    durationHours: Number(s.durationHours),
+  }));
+}
+
 function getFormData() {
   const form = document.getElementById('bookingForm');
+  const lessonSlots = getLessonSlotsPayload();
   return {
-    lessonDateFrom: form.lessonDateFrom.value,
-    lessonDateTo: form.lessonDateTo.value,
+    lessonSlots,
+    durationHours: lessonSlots[0]?.durationHours,
     resortLocation: form.resortLocation.value,
-    durationHours: Number(form.durationHours.value),
     lessonType: form.lessonType.value,
     totalGuests: Number(form.totalGuests.value),
     childrenUnder6: Number(form.childrenUnder6.value),
@@ -192,12 +280,12 @@ function resortLabel(id) {
 async function updateQuote() {
   const form = document.getElementById('bookingForm');
   const resortLocation = form.resortLocation?.value;
-  const durationHours = Number(form.durationHours.value);
   const totalGuests = Number(form.totalGuests.value) || 1;
   const childrenUnder6 = Number(form.childrenUnder6.value) || 0;
+  const lessonSlots = getLessonSlotsPayload();
 
   const summaryEl = document.getElementById('quoteSummary');
-  if (!resortLocation || !durationHours || !totalGuests) {
+  if (!resortLocation || !totalGuests || !lessonSlots.length) {
     summaryEl.innerHTML = `<p class="text-slate-500">${tr('public.quoteEmpty')}</p>`;
     return;
   }
@@ -205,11 +293,10 @@ async function updateQuote() {
   try {
     const res = await publicApi.getQuote({
       resortLocation,
-      durationHours,
+      durationHours: lessonSlots[0].durationHours,
       totalGuests,
       childrenUnder6,
-      lessonDateFrom: form.lessonDateFrom?.value,
-      lessonDateTo: form.lessonDateTo?.value,
+      lessonSlots,
     });
     const q = res.data;
 
@@ -228,17 +315,28 @@ async function updateQuote() {
       capEl.classList.add('hidden');
     }
 
-    let coachNote = tr('public.coachesNeeded', { n: q.coachesRequired });
+    const instructorsRequired = q.instructorsRequired || q.coachesRequired;
+    let coachNote = tr('public.instructorsNeeded', { n: instructorsRequired });
     if (childrenUnder6 >= 2) coachNote += ' ' + tr('public.coachesChild');
     else if (totalGuests > 4) coachNote += ' ' + tr('public.coachesOver4');
 
     const packageNote =
-      q.coachesRequired > 1
+      instructorsRequired > 1
         ? tr('public.packageNoteMulti', {
             price: ui.formatMoney(q.packagePrice, q.currency),
-            n: q.coachesRequired,
+            n: instructorsRequired,
           })
         : tr('public.packageNote');
+
+    const slotLines = lessonSlots
+      .map(
+        (s, i) =>
+          `<div class="flex justify-between text-sm">
+            <span class="text-slate-500">${tr('public.timeslotN', { n: i + 1 })}</span>
+            <span>${s.date} · ${s.startTime} · ${s.durationHours}${tr('common.hours')}</span>
+          </div>`
+      )
+      .join('');
 
     summaryEl.innerHTML = `
       <div class="space-y-3">
@@ -250,21 +348,14 @@ async function updateQuote() {
           <span class="text-slate-600">${tr('public.regionLabel')}</span>
           <span class="text-right text-sm text-slate-500">${q.regionName}</span>
         </div>
+        <div class="space-y-1 border-y py-2">${slotLines}</div>
         <div class="flex justify-between">
           <span class="text-slate-600">${tr('public.lessonDays')}</span>
-          <span>${q.lessonDayCount || 1} ${tr('common.days')}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-slate-600">${tr('public.packagePrice')}</span>
-          <span>${ui.formatMoney(q.packagePrice, q.currency)}${(q.lessonDayCount || 1) > 1 ? ` × ${q.lessonDayCount}` : ''}</span>
+          <span>${q.lessonDayCount || lessonSlots.length} ${tr('public.slotsUnit')}</span>
         </div>
         <div class="flex justify-between">
           <span class="text-slate-600">${tr('public.guests')}</span>
           <span>${q.totalGuests} ${tr('common.people')}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-slate-600">${tr('public.lessonHours')}</span>
-          <span>${q.durationHours} ${tr('common.hours')}</span>
         </div>
         <div class="flex justify-between font-semibold text-lg border-t pt-3">
           <span>${tr('public.estimatedTotal')}</span>
@@ -288,6 +379,9 @@ async function handleSubmit(e) {
 
   try {
     const data = getFormData();
+    if (!data.lessonSlots.length) {
+      throw new Error(tr('public.timeslotRequired'));
+    }
 
     if (data.paymentMethod === 'stripe' && !data.email) {
       throw new Error(tr('public.emailRequired'));

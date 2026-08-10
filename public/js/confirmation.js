@@ -4,6 +4,17 @@
   }
 
   function formatLessonDateRange(booking) {
+    if (Array.isArray(booking.lessonSlots) && booking.lessonSlots.length) {
+      const slots = booking.lessonSlots;
+      if (slots.length === 1) {
+        const s = slots[0];
+        return `${ui.formatDate(s.date)} ${s.startTime || booking.lessonStartTime || '09:00'} (${s.durationHours || booking.durationHours}h)`;
+      }
+      return (
+        slots.map((s) => `${ui.formatDate(s.date)} ${s.startTime || '09:00'}`).join(i18n.getLang() === 'en' ? ', ' : '、') +
+        ` (${slots.length} ${tr('public.slotsUnit')})`
+      );
+    }
     const from = booking.lessonDateFrom || booking.lessonDate;
     const to = booking.lessonDateTo || booking.lessonDateFrom || booking.lessonDate;
     const fromStr = ui.formatDate(from);
@@ -89,10 +100,24 @@
               <p class="text-slate-500">${tr('public.lessonDate')}</p>
               <p class="font-medium">${formatLessonDateRange(b)}</p>
             </div>
-            <div>
+            ${
+              Array.isArray(b.lessonSlots) && b.lessonSlots.length > 1
+                ? `<div class="sm:col-span-2">
+              <p class="text-slate-500">${tr('public.timeslots')}</p>
+              <ul class="font-medium space-y-1 mt-1">
+                ${b.lessonSlots
+                  .map(
+                    (s, i) =>
+                      `<li>${tr('public.timeslotN', { n: i + 1 })}: ${ui.formatDate(s.date)} · ${s.startTime || '09:00'} · ${s.durationHours}${tr('common.hours')}</li>`
+                  )
+                  .join('')}
+              </ul>
+            </div>`
+                : `<div>
               <p class="text-slate-500">${tr('public.lessonHours')}</p>
               <p class="font-medium">${b.durationHours} ${tr('common.hours')}</p>
-            </div>
+            </div>`
+            }
             <div>
               <p class="text-slate-500">${tr('public.lessonType')}</p>
               <p class="font-medium">${ui.label(b.lessonType)}</p>
@@ -102,8 +127,8 @@
               <p class="font-medium">${b.totalGuests} ${tr('common.people')}（${tr('public.childrenUnder6')}: ${b.childrenUnder6}）</p>
             </div>
             <div>
-              <p class="text-slate-500">${tr('public.coachesRequired')}</p>
-              <p class="font-medium">${b.coachesRequired}</p>
+              <p class="text-slate-500">${tr('public.instructorsRequired')}</p>
+              <p class="font-medium">${b.instructorsRequired || b.coachesRequired}</p>
             </div>
             <div>
               <p class="text-slate-500">${tr('public.guestName')}</p>

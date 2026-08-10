@@ -1,4 +1,5 @@
 const { timeToSlotIndex, timeToMinutes } = require('../config/gantt');
+const { getSlotsOnDay, slotTimeRange } = require('./lessonDateRange');
 
 const LEAVE_PERIODS = ['full', 'half_am', 'half_pm'];
 
@@ -12,24 +13,27 @@ function normalizePeriod(period) {
   return 'full';
 }
 
-function getLessonMinutes(booking) {
-  const start = timeToMinutes(booking.lessonStartTime || '09:00');
-  if (start === null) return null;
-  const end = start + Number(booking.durationHours || 0) * 60;
-  return { start, end };
-}
-
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
 }
 
-function lessonOverlapsWindow(booking, windowStart, windowEnd) {
-  const lesson = getLessonMinutes(booking);
-  if (!lesson) return true;
+function lessonOverlapsWindow(booking, windowStart, windowEnd, day = null) {
   const start = timeToMinutes(windowStart);
   const end = timeToMinutes(windowEnd);
   if (start === null || end === null) return true;
-  return rangesOverlap(lesson.start, lesson.end, start, end);
+
+  const slots = day ? getSlotsOnDay(booking, day) : null;
+  if (slots && slots.length) {
+    return slots.some((slot) => {
+      const range = slotTimeRange(slot);
+      return rangesOverlap(range.start, range.end, start, end);
+    });
+  }
+
+  const lessonStart = timeToMinutes(booking.lessonStartTime || '09:00');
+  if (lessonStart === null) return true;
+  const lessonEnd = lessonStart + Number(booking.durationHours || 0) * 60;
+  return rangesOverlap(lessonStart, lessonEnd, start, end);
 }
 
 function isSameDay(a, b) {
@@ -56,7 +60,7 @@ function isCoachBlockedForBookingOnDate(coach, booking, date) {
     const period = normalizePeriod(block.period);
     if (period === 'full') return true;
     const slot = HALF_SLOTS[period];
-    if (slot && lessonOverlapsWindow(booking, slot.start, slot.end)) return true;
+    if (slot && lessonOverlapsWindow(booking, slot.start, slot.end, date)) return true;
   }
   return false;
 }

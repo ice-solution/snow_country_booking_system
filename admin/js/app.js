@@ -9,6 +9,7 @@ const PAGE_TITLE_KEYS = {
   'new-booking': 'admin.nav.newBooking',
   instructors: 'admin.nav.instructors',
   schedule: 'admin.nav.schedule',
+  'schedule-edit': 'admin.nav.scheduleEdit',
   'head-schedule': 'admin.nav.headSchedule',
   pricing: 'admin.nav.pricing',
   klook: 'admin.nav.klook',
@@ -142,7 +143,11 @@ async function verifyAndEnter() {
 }
 
 async function init() {
-  i18n.setLang('en');
+  i18n.init('zh');
+  i18n.mountLangSwitcher('adminLangSwitcher');
+  i18n.mountLangSwitcher('loginLangSwitcher', { dark: true });
+  document.getElementById('adminLangSwitcher')?.classList.remove('hidden');
+  document.getElementById('loginLangSwitcher')?.classList.remove('hidden');
 
   window.addEventListener('langchange', () => {
     document.getElementById('pageTitle').textContent = t(PAGE_TITLE_KEYS[currentPage] || currentPage);
@@ -209,6 +214,7 @@ function navigate(page) {
   if (page === 'instructors') loadInstructors();
   if (page === 'new-booking') renderNewBookingForm();
   if (page === 'schedule') loadScheduleView({ headOnly: false, initialDate: pendingScheduleDate });
+  if (page === 'schedule-edit') loadScheduleEdit();
   if (page === 'head-schedule') loadScheduleView({ headOnly: true, initialDate: pendingScheduleDate });
   pendingScheduleDate = null;
   if (page === 'pricing') loadPricing();
@@ -336,7 +342,7 @@ function renderBookingTable(bookings, { compact = false } = {}) {
             <th class="px-4 py-3">${t('admin.col.guest')}</th>
             <th class="px-4 py-3">${t('admin.col.lesson')}</th>
             <th class="px-4 py-3">${t('admin.col.guests')}</th>
-            <th class="px-4 py-3">${t('admin.col.coaches')}</th>
+            <th class="px-4 py-3">${t('admin.col.instructors')}</th>
             <th class="px-4 py-3">${t('admin.col.source')}</th>
             <th class="px-4 py-3">${t('admin.col.payment')}</th>
             <th class="px-4 py-3">${t('admin.col.status')}</th>
@@ -348,11 +354,15 @@ function renderBookingTable(bookings, { compact = false } = {}) {
             .map(
               (b) => `
             <tr class="border-t hover:bg-slate-50">
-              <td class="px-4 py-3">${ui.formatLessonDateRange(b)}<br><span class="text-xs text-slate-500">${b.lessonStartTime || '09:00'} · ${b.durationHours}h · ${ui.resortLabel(b.resortLocation, b.region)}</span></td>
+              <td class="px-4 py-3">${ui.formatLessonDateRange(b)}<br><span class="text-xs text-slate-500">${
+                Array.isArray(b.lessonSlots) && b.lessonSlots.length > 1
+                  ? `${b.lessonSlots.length} ${t('public.slotsUnit')} · ${ui.resortLabel(b.resortLocation, b.region)}`
+                  : `${b.lessonStartTime || b.lessonSlots?.[0]?.startTime || '09:00'} · ${b.durationHours || b.lessonSlots?.[0]?.durationHours || ''}h · ${ui.resortLabel(b.resortLocation, b.region)}`
+              }</span></td>
               <td class="px-4 py-3">${guestPageLink(b._id, b.guestName)}<br><span class="text-xs text-slate-500">${b.phone}</span></td>
               <td class="px-4 py-3">${ui.label(b.lessonType)}</td>
               <td class="px-4 py-3">${b.totalGuests} ${t('common.people')}<br><span class="text-xs text-slate-500">${t('admin.childrenUnder6Short')}: ${b.childrenUnder6}</span></td>
-              <td class="px-4 py-3">${t('public.coachesNeeded', { n: b.instructorsRequired })}${b.assignedInstructors?.length ? `<br><span class="text-xs text-green-700">${b.assignedInstructors.map((a) => a.instructor?.name || '-').join(', ')}</span>` : ''}</td>
+              <td class="px-4 py-3">${t('admin.instructorsNeeded', { n: b.instructorsRequired })}${b.assignedInstructors?.length ? `<br><span class="text-xs text-green-700">${b.assignedInstructors.map((a) => a.instructor?.name || '-').join(', ')}</span>` : ''}</td>
               <td class="px-4 py-3">${ui.label(b.source)}</td>
               <td class="px-4 py-3">${b.totalAmount ? ui.formatMoney(b.totalAmount, b.currency) : '-'}<br><span class="text-xs text-slate-500">${ui.label(b.paymentStatus || '')}</span></td>
               <td class="px-4 py-3">${ui.statusBadge(b.status)}</td>
@@ -712,7 +722,7 @@ async function showAssignPanel(id, mode = 'assign') {
         <div class="flex justify-between items-start mb-4">
           <div>
             <h3 class="text-lg font-semibold">${isReassign ? t('admin.reassignTitle') : t('admin.assignTitle')}: ${b.guestName} · ${ui.formatLessonDateRange(b)}</h3>
-            <p class="text-sm text-slate-600">${t('public.coachesNeeded', { n: instructorsRequired })}${lessonDayCount > 1 ? ` · ${lessonDayCount} ${t('common.days')}` : ''}</p>
+            <p class="text-sm text-slate-600">${t('admin.instructorsNeeded', { n: instructorsRequired })}${lessonDayCount > 1 ? ` · ${lessonDayCount} ${t('common.days')}` : ''}</p>
             ${isReassign && currentCoaches ? `<p class="text-xs text-slate-500 mt-1">Current: ${currentCoaches}</p>` : ''}
           </div>
           ${canAutoAssign ? `<button id="autoAssignBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">${isReassign ? t('admin.action.autoAssign') : t('admin.action.autoAssign')}</button>` : ''}
@@ -751,7 +761,7 @@ async function showAssignPanel(id, mode = 'assign') {
       const instructorIds = checked.length ? checked : manual;
 
       if (instructorIds.length !== instructorsRequired) {
-        ui.toast(t('public.coachesNeeded', { n: instructorsRequired }), 'error');
+        ui.toast(t('admin.instructorsNeeded', { n: instructorsRequired }), 'error');
         return;
       }
 
@@ -816,7 +826,7 @@ async function loadInstructors() {
           </div>
         </div>` : ''}
       <div class="flex justify-between mb-4">
-        <p class="text-sm text-slate-600">${res.data.length} coach(es)</p>
+        <p class="text-sm text-slate-600">${res.data.length} ${t('admin.instructorCount', { n: res.data.length })}</p>
         <button id="showInstructorForm" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('admin.addInstructor')}</button>
       </div>
       <div id="instructorForm" class="hidden mb-6"></div>
@@ -854,6 +864,31 @@ async function loadInstructors() {
         try {
           const res = await api.blockInstructorDate(btn.dataset.id, payload);
           ui.toast(res.message || t('admin.leaveSet'), res.affectedBookings > 0 ? 'error' : 'success');
+          loadInstructors();
+        } catch (err) {
+          ui.toast(err.message, 'error');
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-instructor-action="delete"]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(t('admin.confirmDeleteInstructor', { name: btn.dataset.name }))) return;
+        try {
+          await api.deleteInstructor(btn.dataset.id);
+          ui.toast(t('admin.instructorDeleted'), 'success');
+          loadInstructors();
+        } catch (err) {
+          ui.toast(err.message, 'error');
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-instructor-action="reactivate"]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try {
+          await api.updateInstructor(btn.dataset.id, { active: true });
+          ui.toast(t('admin.instructorReactivated'), 'success');
           loadInstructors();
         } catch (err) {
           ui.toast(err.message, 'error');
@@ -905,7 +940,10 @@ function renderInstructorCard(coach) {
         </div>
         <div class="text-right space-y-2">
           <span class="text-xs block ${coach.active ? 'text-green-600' : 'text-red-600'}">${coach.active ? t('admin.coachActive') : t('admin.coachInactive')}</span>
-          <button data-instructor-action="block" data-id="${coach._id}" class="block text-xs text-amber-600 hover:underline">${t('admin.coachLeave')}</button>
+          ${coach.active
+            ? `<button data-instructor-action="block" data-id="${coach._id}" class="block text-xs text-amber-600 hover:underline">${t('admin.coachLeave')}</button>
+          <button data-instructor-action="delete" data-id="${coach._id}" data-name="${coach.name}" class="block text-xs text-red-600 hover:underline">${t('admin.deleteInstructor')}</button>`
+            : `<button data-instructor-action="reactivate" data-id="${coach._id}" class="block text-xs text-green-600 hover:underline">${t('admin.reactivateInstructor')}</button>`}
         </div>
       </div>
     </div>
@@ -1256,6 +1294,257 @@ function renderGanttChart({ timeSlots, rows, unassigned, locations, capacity }) 
   return `${capHtml}<div id="ganttLegend" class="flex flex-wrap gap-2 mb-4 text-xs">${legend}</div><div id="ganttChart" class="bg-white rounded-xl border overflow-x-auto">${chart}</div>${unassignedHtml}`;
 }
 
+const SCHEDULE_EDIT_MAX_DAYS = 14;
+
+async function loadScheduleEdit() {
+  const container = document.getElementById('content');
+  const today = formatIsoDate(new Date());
+  const defaultFrom = pendingScheduleDate || today;
+  const defaultTo = addDays(defaultFrom, 6);
+  pendingScheduleDate = null;
+
+  container.innerHTML = `
+    <div class="space-y-4">
+      <div class="bg-white border rounded-xl p-4 shadow-sm">
+        <p class="text-sm text-slate-600 mb-3">${t('admin.scheduleEditDesc')}</p>
+        <div class="flex flex-wrap gap-3 items-end">
+          <label class="text-sm">
+            <span class="block text-xs text-slate-500 mb-1">${t('admin.rangeFrom')}</span>
+            <input type="date" id="scheduleEditFrom" value="${defaultFrom}" class="border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <label class="text-sm">
+            <span class="block text-xs text-slate-500 mb-1">${t('admin.rangeTo')}</span>
+            <input type="date" id="scheduleEditTo" value="${defaultTo}" class="border rounded-lg px-3 py-2 text-sm">
+          </label>
+          <button type="button" id="scheduleEditLoad" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('admin.scheduleEditLoad')}</button>
+          <button type="button" id="scheduleEditRefresh" class="px-4 py-2 border rounded-lg text-sm">${t('common.refresh')}</button>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">${t('admin.scheduleEditHint')}</p>
+      </div>
+      <div id="scheduleEditBoard"><p class="text-slate-500">${t('common.loading')}</p></div>
+    </div>
+  `;
+
+  async function renderBoard() {
+    const boardEl = document.getElementById('scheduleEditBoard');
+    const from = document.getElementById('scheduleEditFrom').value;
+    const to = document.getElementById('scheduleEditTo').value;
+    if (!from || !to) {
+      boardEl.innerHTML = `<p class="text-slate-500 py-8 text-center">${t('admin.rangeSelectDates')}</p>`;
+      return;
+    }
+    if (to < from) {
+      boardEl.innerHTML = `<p class="text-red-600 py-8 text-center">${t('admin.rangeInvalid')}</p>`;
+      return;
+    }
+    const dayCount = datesInRange(from, to).length;
+    if (dayCount > SCHEDULE_EDIT_MAX_DAYS) {
+      boardEl.innerHTML = `<p class="text-red-600 py-8 text-center">${t('admin.rangeTooLong', { max: SCHEDULE_EDIT_MAX_DAYS })}</p>`;
+      return;
+    }
+
+    boardEl.innerHTML = `<p class="text-slate-500">${t('common.loading')}</p>`;
+    try {
+      const res = await api.getScheduleBoard({ from, to });
+      boardEl.innerHTML = renderScheduleEditBoard(res.data);
+      bindScheduleEditDnD(boardEl, renderBoard);
+    } catch (err) {
+      boardEl.innerHTML = `<p class="text-red-600">${err.message}</p>`;
+    }
+  }
+
+  document.getElementById('scheduleEditLoad').addEventListener('click', renderBoard);
+  document.getElementById('scheduleEditRefresh').addEventListener('click', renderBoard);
+  document.getElementById('scheduleEditFrom').addEventListener('change', () => {
+    const fromInput = document.getElementById('scheduleEditFrom');
+    const toInput = document.getElementById('scheduleEditTo');
+    toInput.min = fromInput.value;
+    if (toInput.value < fromInput.value) toInput.value = fromInput.value;
+  });
+
+  await renderBoard();
+}
+
+function scheduleEditCardPayload(card, rowInstructorId) {
+  return {
+    bookingId: String(card.bookingId),
+    slotIndex: card.slotIndex,
+    fromDate: card.date,
+    fromStartTime: card.startTime,
+    fromInstructorId: rowInstructorId || '',
+    status: card.status,
+    guestName: card.guestName,
+  };
+}
+
+function renderScheduleEditCard(card, rowInstructorId) {
+  const payload = scheduleEditCardPayload(card, rowInstructorId);
+  const multi = card.hasMultipleSlots
+    ? `<span class="text-[10px] opacity-80"> · ${card.slotCount}${t('public.slotsUnit')}</span>`
+    : '';
+  const type = card.lessonType === 'snowboard' ? 'SB' : 'SKI';
+  const resort = ui.resortLabel(card.resortLocation, card.region);
+  return `
+    <div class="schedule-edit-card cursor-grab active:cursor-grabbing rounded-lg border bg-white shadow-sm px-2 py-1.5 text-xs mb-1.5 hover:border-brand-400"
+      draggable="true"
+      data-card="${encodeURIComponent(JSON.stringify(payload))}">
+      <p class="font-medium truncate">${guestPageLink(card.bookingId, card.guestName)}${multi}</p>
+      <p class="text-slate-500 truncate">${card.startTime} · ${card.durationHours}h · ${type} · ${resort}</p>
+      <p class="text-slate-400 truncate">${ui.label(card.status)}</p>
+    </div>`;
+}
+
+function cardsForCell(cards, date, instructorId) {
+  if (!instructorId) {
+    return cards.filter((c) => c.date === date && !(c.assignedInstructors || []).length);
+  }
+  return cards.filter(
+    (c) =>
+      c.date === date &&
+      (c.assignedInstructors || []).some((a) => String(a.instructorId) === String(instructorId))
+  );
+}
+
+function renderScheduleEditBoard(data) {
+  const { dates, instructors, cards } = data;
+  const colTemplate = `160px repeat(${dates.length}, minmax(140px, 1fr))`;
+
+  const header = `
+    <div class="grid sticky top-0 z-10 bg-slate-50 border-b text-xs font-medium" style="grid-template-columns:${colTemplate}">
+      <div class="p-2 border-r">${t('admin.ganttInstructor')}</div>
+      ${dates
+        .map(
+          (d) =>
+            `<div class="p-2 text-center border-r">${ui.formatDate(d)}<br><span class="text-slate-400 font-normal">${d}</span></div>`
+        )
+        .join('')}
+    </div>`;
+
+  const unassignedRow = `
+    <div class="grid border-b bg-amber-50/40" style="grid-template-columns:${colTemplate}">
+      <div class="p-2 text-sm font-medium border-r text-amber-900">${t('admin.ganttUnassigned')}</div>
+      ${dates
+        .map((d) => {
+          const cellCards = cardsForCell(cards, d, null);
+          return `<div class="schedule-edit-cell p-1.5 border-r min-h-[88px]" data-date="${d}" data-instructor-id="">
+            ${cellCards.map((c) => renderScheduleEditCard(c, '')).join('') || `<p class="text-[10px] text-slate-300 p-1">${t('admin.scheduleEditDrop')}</p>`}
+          </div>`;
+        })
+        .join('')}
+    </div>`;
+
+  const instructorRows = instructors
+    .map((ins) => {
+      const id = String(ins._id);
+      return `
+      <div class="grid border-b" style="grid-template-columns:${colTemplate}">
+        <div class="p-2 text-sm font-medium border-r bg-slate-50">${ins.name}</div>
+        ${dates
+          .map((d) => {
+            const cellCards = cardsForCell(cards, d, id);
+            return `<div class="schedule-edit-cell p-1.5 border-r min-h-[88px]" data-date="${d}" data-instructor-id="${id}">
+              ${cellCards.map((c) => renderScheduleEditCard(c, id)).join('') || `<p class="text-[10px] text-slate-300 p-1">${t('admin.scheduleEditDrop')}</p>`}
+            </div>`;
+          })
+          .join('')}
+      </div>`;
+    })
+    .join('');
+
+  return `
+    <div class="bg-white border rounded-xl shadow-sm overflow-auto">
+      <div class="min-w-[900px]">
+        ${header}
+        ${unassignedRow}
+        ${instructorRows}
+      </div>
+    </div>
+    <p class="text-xs text-slate-500 mt-2">${t('admin.scheduleEditLegend')}</p>
+  `;
+}
+
+function bindScheduleEditDnD(root, onMoved) {
+  let dragPayload = null;
+
+  root.querySelectorAll('.schedule-edit-card').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      if (e.target.closest('a')) {
+        e.preventDefault();
+        return;
+      }
+      try {
+        dragPayload = JSON.parse(decodeURIComponent(card.dataset.card));
+      } catch {
+        dragPayload = null;
+      }
+      card.classList.add('opacity-50');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.card || '');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('opacity-50');
+      root.querySelectorAll('.schedule-edit-cell').forEach((c) => c.classList.remove('ring-2', 'ring-brand-400', 'bg-brand-50'));
+    });
+  });
+
+  root.querySelectorAll('.schedule-edit-cell').forEach((cell) => {
+    cell.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cell.classList.add('ring-2', 'ring-brand-400', 'bg-brand-50');
+    });
+    cell.addEventListener('dragleave', () => {
+      cell.classList.remove('ring-2', 'ring-brand-400', 'bg-brand-50');
+    });
+    cell.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      cell.classList.remove('ring-2', 'ring-brand-400', 'bg-brand-50');
+      let payload = dragPayload;
+      if (!payload) {
+        try {
+          payload = JSON.parse(decodeURIComponent(e.dataTransfer.getData('text/plain')));
+        } catch {
+          return;
+        }
+      }
+      if (!payload?.bookingId) return;
+
+      const toDate = cell.dataset.date;
+      const toInstructorId = cell.dataset.instructorId || '';
+      const fromInstructorId = payload.fromInstructorId || '';
+
+      const sameDate = toDate === payload.fromDate;
+      const sameInstructor = String(toInstructorId) === String(fromInstructorId);
+      if (sameDate && sameInstructor) return;
+
+      if (!toInstructorId && fromInstructorId) {
+        ui.toast(t('admin.scheduleEditNoUnassign'), 'error');
+        return;
+      }
+
+      const body = {
+        slotIndex: payload.slotIndex,
+        fromDate: payload.fromDate,
+        fromStartTime: payload.fromStartTime,
+        toDate,
+        toStartTime: payload.fromStartTime,
+      };
+      if (fromInstructorId) body.fromInstructorId = fromInstructorId;
+      if (toInstructorId && toInstructorId !== fromInstructorId) {
+        body.toInstructorId = toInstructorId;
+      }
+
+      try {
+        await api.moveLessonSlot(payload.bookingId, body);
+        ui.toast(t('admin.scheduleEditMoved'), 'success');
+        await onMoved();
+      } catch (err) {
+        ui.toast(err.message, 'error');
+      }
+    });
+  });
+}
+
 async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
   const container = document.getElementById('content');
   const today = formatIsoDate(new Date());
@@ -1274,6 +1563,7 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
     <div id="scheduleToolbar" class="flex flex-wrap gap-3 mb-4 items-center">
       <input type="date" id="scheduleDate" value="${startDate}" class="border rounded-lg px-3 py-2 text-sm">
       <button id="refreshSchedule" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('common.refresh')}</button>
+      <button type="button" id="openScheduleEdit" class="px-4 py-2 border border-brand-300 text-brand-700 rounded-lg text-sm hover:bg-brand-50">${t('admin.nav.scheduleEdit')}</button>
       <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline">${t('admin.coachViewLink')}</a>
     </div>
     <div id="scheduleRangeToolbar" class="hidden flex flex-wrap gap-3 mb-4 items-end">
@@ -1400,6 +1690,10 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
   });
 
   document.getElementById('refreshSchedule').addEventListener('click', render);
+  document.getElementById('openScheduleEdit')?.addEventListener('click', () => {
+    pendingScheduleDate = document.getElementById('scheduleDate')?.value || anchorDate;
+    navigate('schedule-edit');
+  });
   document.getElementById('scheduleDate').addEventListener('change', () => {
     anchorDate = document.getElementById('scheduleDate').value;
     if (viewMode === 'day') render();

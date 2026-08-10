@@ -2,7 +2,7 @@ const Booking = require('../models/Booking');
 const Instructor = require('../models/Instructor');
 const { normalizeDate } = require('./scheduleService');
 const { isCoachOnFullDayLeave } = require('../utils/leavePeriods');
-const { mongoOverlapsDay } = require('../utils/lessonDateRange');
+const { mongoOverlapsDay, bookingOverlapsDay } = require('../utils/lessonDateRange');
 
 const ACTIVE_STATUSES = ['pending', 'confirmed', 'assigned', 'needs_attention'];
 
@@ -21,10 +21,10 @@ async function getDailyCapacity(date, { headOnly = false } = {}) {
 
   const supply = availableCoaches.reduce((sum, c) => sum + (c.maxDailyLessons || 2), 0);
 
-  const bookings = await Booking.find({
+  const bookings = (await Booking.find({
     status: { $in: ACTIVE_STATUSES },
     ...mongoOverlapsDay(targetDate),
-  });
+  })).filter((b) => bookingOverlapsDay(b, targetDate));
 
   const demand = bookings.reduce((sum, b) => sum + (b.coachesRequired || 1), 0);
   const unassigned = bookings.filter((b) => !b.assignedCoaches?.length).length;

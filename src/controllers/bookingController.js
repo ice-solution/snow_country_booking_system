@@ -15,25 +15,46 @@ async function buildBookingPayload(body) {
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
   const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
   const dateRange = parseLessonDateRange(body);
-  const dayCount = dateRange.lessonDayCount;
+  const dayCount = dateRange.lessonDayCount || getLessonDayCount(dateRange);
+  const durationHours = Number(body.durationHours || dateRange.durationHours);
 
   const payload = {
     ...body,
     ...dateRange,
+    durationHours,
     totalGuests,
     childrenUnder6,
     coachesRequired,
   };
 
-  if (body.resortLocation && body.durationHours) {
-    const pricing = await pricingConfigService.calculatePrice(
-      body.resortLocation,
-      Number(body.durationHours),
-      coachesRequired
-    );
-    payload.totalAmount = pricing.totalAmount * dayCount;
-    payload.currency = pricing.currency;
-    if (!payload.region) payload.region = pricing.region;
+  if (body.resortLocation && durationHours) {
+    if (dateRange.lessonSlots?.length) {
+      let total = 0;
+      let currency = null;
+      let region = null;
+      for (const slot of dateRange.lessonSlots) {
+        const pricing = await pricingConfigService.calculatePrice(
+          body.resortLocation,
+          slot.durationHours,
+          coachesRequired
+        );
+        total += pricing.totalAmount;
+        currency = pricing.currency;
+        region = pricing.region;
+      }
+      payload.totalAmount = total;
+      payload.currency = currency;
+      if (!payload.region) payload.region = region;
+    } else {
+      const pricing = await pricingConfigService.calculatePrice(
+        body.resortLocation,
+        durationHours,
+        coachesRequired
+      );
+      payload.totalAmount = pricing.totalAmount * dayCount;
+      payload.currency = pricing.currency;
+      if (!payload.region) payload.region = pricing.region;
+    }
   }
 
   return body.resortLocation ? catalogService.applyResortToBooking(payload) : payload;
@@ -321,6 +342,16 @@ async function autoReassignInstructors(req, res, next) {
   }
 }
 
+async function moveLessonSlot(req, res, next) {
+  try {
+    const scheduleMoveService = require('../services/scheduleMoveService');
+    const booking = await scheduleMoveService.moveLessonSlot(req.params.id, req.body);
+    res.json({ success: true, data: booking, message: 'Lesson timeslot moved' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listBookings,
   getBooking,
@@ -338,4 +369,5 @@ module.exports = {
   autoReassignInstructors,
   calculateInstructors,
   completeBooking,
+  moveLessonSlot,
 };

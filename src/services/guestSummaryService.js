@@ -17,6 +17,13 @@ function toGuestSummary(booking) {
     lessonDateFrom: booking.lessonDateFrom || booking.lessonDate,
     lessonDateTo: booking.lessonDateTo || booking.lessonDateFrom || booking.lessonDate,
     lessonDate: booking.lessonDateFrom || booking.lessonDate,
+    lessonSlots: Array.isArray(booking.lessonSlots)
+      ? booking.lessonSlots.map((s) => ({
+          date: s.date,
+          startTime: s.startTime || booking.lessonStartTime || '09:00',
+          durationHours: s.durationHours || booking.durationHours,
+        }))
+      : undefined,
     lessonDayCount: getLessonDayCount(booking),
     lessonStartTime: booking.lessonStartTime || '09:00',
     durationHours: booking.durationHours,
