@@ -1,6 +1,6 @@
 const Booking = require('../models/Booking');
 const { parseKlookEmail } = require('./klookEmailParser');
-const { calculateCoachesRequired } = require('../utils/coachRequirement');
+const { calculateInstructorsRequired } = require('../utils/instructorRequirement');
 const catalogService = require('../services/catalogService');
 const pricingConfigService = require('../services/pricingConfigService');
 const crypto = require('crypto');
@@ -41,11 +41,11 @@ async function createBookingFromKlookEmail(input) {
     };
   }
 
-  const coachesRequired = calculateCoachesRequired(parsed.totalGuests, parsed.childrenUnder6);
+  const instructorsRequired = calculateInstructorsRequired(parsed.totalGuests, parsed.childrenUnder6);
   const pricing = await pricingConfigService.calculatePrice(
     parsed.resortLocation,
     parsed.durationHours,
-    coachesRequired
+    instructorsRequired
   );
 
   const lessonDate = normalizeLessonDate(parsed.lessonDate);
@@ -55,7 +55,7 @@ async function createBookingFromKlookEmail(input) {
       lessonDateFrom: lessonDate,
       lessonDateTo: lessonDate,
       lessonDate,
-      coachesRequired,
+      instructorsRequired,
       totalAmount: pricing.totalAmount,
       currency: pricing.currency,
       status: 'pending',

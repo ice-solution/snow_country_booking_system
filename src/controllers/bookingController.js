@@ -1,5 +1,5 @@
 const Booking = require('../models/Booking');
-const { calculateCoachesRequired } = require('../utils/coachRequirement');
+const { calculateInstructorsRequired } = require('../utils/instructorRequirement');
 const catalogService = require('../services/catalogService');
 const pricingConfigService = require('../services/pricingConfigService');
 const assignmentService = require('../services/assignmentService');
@@ -13,7 +13,7 @@ const {
 async function buildBookingPayload(body) {
   const totalGuests = Number(body.totalGuests);
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
-  const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
+  const instructorsRequired = calculateInstructorsRequired(totalGuests, childrenUnder6);
   const dateRange = parseLessonDateRange(body);
   const dayCount = dateRange.lessonDayCount || getLessonDayCount(dateRange);
   const durationHours = Number(body.durationHours || dateRange.durationHours);
@@ -24,7 +24,7 @@ async function buildBookingPayload(body) {
     durationHours,
     totalGuests,
     childrenUnder6,
-    coachesRequired,
+    instructorsRequired,
   };
 
   if (body.resortLocation && durationHours) {
@@ -36,7 +36,7 @@ async function buildBookingPayload(body) {
         const pricing = await pricingConfigService.calculatePrice(
           body.resortLocation,
           slot.durationHours,
-          coachesRequired
+          instructorsRequired
         );
         total += pricing.totalAmount;
         currency = pricing.currency;
@@ -49,7 +49,7 @@ async function buildBookingPayload(body) {
       const pricing = await pricingConfigService.calculatePrice(
         body.resortLocation,
         durationHours,
-        coachesRequired
+        instructorsRequired
       );
       payload.totalAmount = pricing.totalAmount * dayCount;
       payload.currency = pricing.currency;
@@ -75,7 +75,7 @@ async function listBookings(req, res, next) {
     }
 
     const bookings = await Booking.find(filter)
-      .populate('assignedCoaches.coach', 'name phone specialties')
+      .populate('assignedInstructors.instructor', 'name phone specialties')
       .sort({ lessonDateFrom: 1, createdAt: -1 });
 
     res.json({ success: true, data: bookings });
@@ -87,7 +87,7 @@ async function listBookings(req, res, next) {
 async function getBooking(req, res, next) {
   try {
     const booking = await Booking.findById(req.params.id).populate(
-      'assignedCoaches.coach',
+      'assignedInstructors.instructor',
       'name phone email specialties languages'
     );
     if (!booking) {
@@ -237,7 +237,7 @@ async function markNeedsAttention(req, res, next) {
 async function suggestInstructors(req, res, next) {
   try {
     const forReassign = req.query.forReassign === 'true' || req.query.forReassign === '1';
-    const result = await assignmentService.suggestCoachesForBooking(req.params.id, {
+    const result = await assignmentService.suggestInstructorsForBooking(req.params.id, {
       forReassign,
     });
     res.json({ success: true, data: result });
@@ -248,9 +248,8 @@ async function suggestInstructors(req, res, next) {
 
 async function assignInstructors(req, res, next) {
   try {
-    const instructorIds = req.body.instructorIds || req.body.coachIds;
-    const { assignedBy } = req.body;
-    const booking = await assignmentService.assignCoaches(
+    const { instructorIds, assignedBy } = req.body;
+    const booking = await assignmentService.assignInstructors(
       req.params.id,
       instructorIds,
       assignedBy || 'manual'
@@ -263,9 +262,8 @@ async function assignInstructors(req, res, next) {
 
 async function reassignInstructors(req, res, next) {
   try {
-    const instructorIds = req.body.instructorIds || req.body.coachIds;
-    const { assignedBy } = req.body;
-    const booking = await assignmentService.reassignCoaches(
+    const { instructorIds, assignedBy } = req.body;
+    const booking = await assignmentService.reassignInstructors(
       req.params.id,
       instructorIds,
       assignedBy || 'manual'
@@ -284,7 +282,7 @@ async function resolveBooking(req, res, next) {
     res.json({
       success: true,
       data: booking,
-      message: 'Booking resolved — ready to assign coaches',
+      message: 'Booking resolved — ready to assign instructors',
     });
   } catch (err) {
     next(err);
@@ -317,7 +315,7 @@ async function completeBooking(req, res, next) {
 
 async function calculateInstructors(req, res) {
   const { totalGuests, childrenUnder6 } = req.body;
-  const instructorsRequired = calculateCoachesRequired(
+  const instructorsRequired = calculateInstructorsRequired(
     Number(totalGuests),
     Number(childrenUnder6 || 0)
   );
@@ -326,7 +324,7 @@ async function calculateInstructors(req, res) {
 
 async function autoAssignInstructors(req, res, next) {
   try {
-    const booking = await assignmentService.autoAssignCoaches(req.params.id);
+    const booking = await assignmentService.autoAssignInstructors(req.params.id);
     res.json({ success: true, data: booking, message: 'Instructors assigned automatically' });
   } catch (err) {
     next(err);
@@ -335,7 +333,7 @@ async function autoAssignInstructors(req, res, next) {
 
 async function autoReassignInstructors(req, res, next) {
   try {
-    const booking = await assignmentService.autoReassignCoaches(req.params.id);
+    const booking = await assignmentService.autoReassignInstructors(req.params.id);
     res.json({ success: true, data: booking, message: 'Instructors reassigned automatically' });
   } catch (err) {
     next(err);

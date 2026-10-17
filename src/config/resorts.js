@@ -8,7 +8,7 @@
  */
 const CURRENCY = 'jpy';
 
-/** 收費地區（套票價格 JPY，每組教練 1–4 人） */
+/** 收費地區（套票價格 JPY，每組導師 1–4 人） */
 const PRICING_REGIONS = {
   yuzawa: {
     id: 'yuzawa',
@@ -80,7 +80,7 @@ const RESORT_ALIASES = {
 };
 
 const PRICING_NOTE =
-  '價格為每組教練（最多 4 人）套票費用，含教練費及基本保險。不含纜車票、裝備租借及餐飲。最終以管理員確認為準。';
+  '價格為每組導師（最多 4 人）套票費用，含導師費及基本保險。不含纜車票、裝備租借及餐飲。最終以管理員確認為準。';
 
 function getResortMap() {
   return Object.fromEntries(RESORTS.map((r) => [r.id, r]));
@@ -132,7 +132,7 @@ function applyResortToBooking(payload) {
   };
 }
 
-function calculatePrice(resortIdOrRegion, durationHours, coachesRequired) {
+function calculatePrice(resortIdOrRegion, durationHours, instructorsRequired) {
   const regionId = getResort(resortIdOrRegion)?.region || resortIdOrRegion;
   const region = getPricingRegion(regionId);
   if (!region) {
@@ -149,7 +149,7 @@ function calculatePrice(resortIdOrRegion, durationHours, coachesRequired) {
   }
 
   const resort = getResort(resortIdOrRegion);
-  const coaches = Number(coachesRequired) || 1;
+  const instructors = Number(instructorsRequired) || 1;
 
   return {
     resortLocation: resort?.id || null,
@@ -158,9 +158,9 @@ function calculatePrice(resortIdOrRegion, durationHours, coachesRequired) {
     regionName: region.name,
     currency: CURRENCY,
     packagePrice,
-    coachesRequired: coaches,
+    instructorsRequired: instructors,
     durationHours,
-    totalAmount: packagePrice * coaches,
+    totalAmount: packagePrice * instructors,
   };
 }
 
@@ -189,9 +189,9 @@ function getPricingTable() {
     })),
     resorts: getResortsConfig(),
     note: PRICING_NOTE,
-    includes: ['教練費', '基本保險'],
+    includes: ['導師費', '基本保險'],
     excludes: ['纜車票', '裝備租借', '餐飲'],
-    maxGuestsPerCoach: 4,
+    maxGuestsPerInstructor: 4,
   };
 }
 

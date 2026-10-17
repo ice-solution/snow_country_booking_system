@@ -12,7 +12,7 @@ function normalizeDate(dateInput) {
   return date;
 }
 
-async function getSchedule({ from, to, coachId }) {
+async function getSchedule({ from, to, instructorId }) {
   const start = from ? normalizeDate(from) : normalizeDate(new Date());
   const end = to ? normalizeDate(to) : new Date(start.getTime() + 30 * 86400000);
   end.setHours(23, 59, 59, 999);
@@ -22,15 +22,17 @@ async function getSchedule({ from, to, coachId }) {
     ...mongoOverlapsRange(start, end),
   };
 
-  if (coachId) {
-    bookingFilter['assignedCoaches.coach'] = coachId;
+  if (instructorId) {
+    bookingFilter['assignedInstructors.instructor'] = instructorId;
   }
 
-  const [bookings, coaches] = await Promise.all([
+  const [bookings, instructors] = await Promise.all([
     Booking.find(bookingFilter)
-      .populate('assignedCoaches.coach', 'name phone specialties')
+      .populate('assignedInstructors.instructor', 'name phone specialties')
       .sort({ lessonDateFrom: 1 }),
-    Instructor.find(coachId ? { _id: coachId, active: true } : { active: true }).sort({ name: 1 }),
+    Instructor.find(instructorId ? { _id: instructorId, active: true } : { active: true }).sort({
+      name: 1,
+    }),
   ]);
 
   const byDate = {};
@@ -44,7 +46,7 @@ async function getSchedule({ from, to, coachId }) {
   return {
     from: start,
     to: end,
-    coaches,
+    instructors,
     bookings,
     byDate,
     totalBookings: bookings.length,

@@ -32,18 +32,18 @@ function toGuestSummary(booking) {
     lessonType: booking.lessonType,
     totalGuests: booking.totalGuests,
     childrenUnder6: booking.childrenUnder6,
-    instructorsRequired: booking.coachesRequired,
+    instructorsRequired: booking.instructorsRequired,
     source: booking.source,
     status: booking.status,
-    assignedInstructors: (booking.assignedCoaches || [])
-      .map((a) => a.coach?.name)
+    assignedInstructors: (booking.assignedInstructors || [])
+      .map((a) => a.instructor?.name)
       .filter(Boolean),
   };
 }
 
 async function getGuestSummaryById(bookingId) {
   const booking = await Booking.findById(bookingId).populate(
-    'assignedCoaches.coach',
+    'assignedInstructors.instructor',
     'name'
   );
   if (!booking) {
@@ -62,7 +62,7 @@ async function getGuestSummaryForInstructor(bookingId, instructorId) {
   }
 
   const booking = await Booking.findById(bookingId).populate(
-    'assignedCoaches.coach',
+    'assignedInstructors.instructor',
     'name'
   );
   if (!booking) {
@@ -71,8 +71,8 @@ async function getGuestSummaryForInstructor(bookingId, instructorId) {
     throw error;
   }
 
-  const isAssigned = (booking.assignedCoaches || []).some((a) => {
-    const id = a.coach?._id?.toString() || a.coach?.toString();
+  const isAssigned = (booking.assignedInstructors || []).some((a) => {
+    const id = a.instructor?._id?.toString() || a.instructor?.toString();
     return id === instructorId;
   });
 
@@ -89,5 +89,4 @@ module.exports = {
   toGuestSummary,
   getGuestSummaryById,
   getGuestSummaryForInstructor,
-  getGuestSummaryForCoach: getGuestSummaryForInstructor,
 };

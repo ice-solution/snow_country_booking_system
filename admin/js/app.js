@@ -71,16 +71,16 @@ function renderSocialContacts(b) {
   `;
 }
 
-function showInstructorLeaveDialog(coachId) {
+function showInstructorLeaveDialog(instructorId) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4';
     overlay.innerHTML = `
       <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-        <h3 class="font-semibold text-lg mb-4">${t('admin.coachLeave')}</h3>
+        <h3 class="font-semibold text-lg mb-4">${t('admin.instructorLeave')}</h3>
         <form id="instructorLeaveForm" class="space-y-3">
           <label class="text-sm block">
-            <span class="text-slate-600">${t('coach.leaveDate')}</span>
+            <span class="text-slate-600">${t('instructor.leaveDate')}</span>
             <input type="date" name="date" required class="mt-1 w-full border rounded-lg px-3 py-2">
           </label>
           <fieldset class="text-sm">
@@ -90,7 +90,7 @@ function showInstructorLeaveDialog(coachId) {
             <label><input type="radio" name="period" value="half_pm"> ${t('admin.leaveHalfPm')}</label>
           </fieldset>
           <label class="text-sm block">
-            <span class="text-slate-600">${t('coach.leaveReason')}</span>
+            <span class="text-slate-600">${t('instructor.leaveReason')}</span>
             <input type="text" name="reason" class="mt-1 w-full border rounded-lg px-3 py-2">
           </label>
           <div class="flex gap-2 pt-2">
@@ -712,7 +712,7 @@ async function showAssignPanel(id, mode = 'assign') {
     ]);
     const b = bookingRes.data;
     const { suggestions, allEligible, instructorsRequired, lessonDayCount, canAutoAssign } = suggestRes.data;
-    const currentCoaches = (b.assignedInstructors || [])
+    const currentInstructors = (b.assignedInstructors || [])
       .map((a) => a.instructor?.name)
       .filter(Boolean)
       .join(', ');
@@ -723,7 +723,7 @@ async function showAssignPanel(id, mode = 'assign') {
           <div>
             <h3 class="text-lg font-semibold">${isReassign ? t('admin.reassignTitle') : t('admin.assignTitle')}: ${b.guestName} · ${ui.formatLessonDateRange(b)}</h3>
             <p class="text-sm text-slate-600">${t('admin.instructorsNeeded', { n: instructorsRequired })}${lessonDayCount > 1 ? ` · ${lessonDayCount} ${t('common.days')}` : ''}</p>
-            ${isReassign && currentCoaches ? `<p class="text-xs text-slate-500 mt-1">Current: ${currentCoaches}</p>` : ''}
+            ${isReassign && currentInstructors ? `<p class="text-xs text-slate-500 mt-1">Current: ${currentInstructors}</p>` : ''}
           </div>
           ${canAutoAssign ? `<button id="autoAssignBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm">${isReassign ? t('admin.action.autoAssign') : t('admin.action.autoAssign')}</button>` : ''}
         </div>
@@ -913,37 +913,37 @@ async function loadInstructors() {
   }
 }
 
-function renderInstructorCard(coach) {
-  const blocked = (coach.blockedDates || [])
+function renderInstructorCard(instructor) {
+  const blocked = (instructor.blockedDates || [])
     .map(
       (b) =>
-        `<span class="inline-flex items-center gap-1 mr-2">${ui.formatDate(b.date)} (${leavePeriodLabel(b.period)})${b.reason ? ` — ${b.reason}` : ''}<button data-instructor-action="unblock" data-id="${coach._id}" data-date="${new Date(b.date).toISOString().split('T')[0]}" class="text-brand-600 hover:underline">${t('admin.coachUnblock')}</button></span>`
+        `<span class="inline-flex items-center gap-1 mr-2">${ui.formatDate(b.date)} (${leavePeriodLabel(b.period)})${b.reason ? ` — ${b.reason}` : ''}<button data-instructor-action="unblock" data-id="${instructor._id}" data-date="${new Date(b.date).toISOString().split('T')[0]}" class="text-brand-600 hover:underline">${t('admin.instructorUnblock')}</button></span>`
     )
     .join('');
 
   return `
-    <div class="bg-white border rounded-xl p-5 shadow-sm ${coach.active ? '' : 'opacity-60'}" data-instructor-id="${coach._id}">
+    <div class="bg-white border rounded-xl p-5 shadow-sm ${instructor.active ? '' : 'opacity-60'}" data-instructor-id="${instructor._id}">
       <div class="flex justify-between items-start gap-4">
         <div class="flex-1">
-          <h3 class="font-semibold text-lg">${coach.name}
-            ${coach.isHeadInstructor ? '<span class="text-xs bg-brand-100 text-brand-800 px-2 py-0.5 rounded ml-1">Head</span>' : ''}
-            ${coach.isMainland ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">${t('admin.coachMainland')}</span>` : ''}
+          <h3 class="font-semibold text-lg">${instructor.name}
+            ${instructor.isHeadInstructor ? '<span class="text-xs bg-brand-100 text-brand-800 px-2 py-0.5 rounded ml-1">Head</span>' : ''}
+            ${instructor.isMainland ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">${t('admin.instructorMainland')}</span>` : ''}
           </h3>
-          <p class="text-sm text-slate-600 mt-1">${coach.phone || ''} ${coach.email ? '· ' + coach.email : ''}</p>
+          <p class="text-sm text-slate-600 mt-1">${instructor.phone || ''} ${instructor.email ? '· ' + instructor.email : ''}</p>
           <p class="text-sm mt-2">
-            ${coach.specialties.map((s) => `<span class="inline-block bg-brand-100 text-brand-800 px-2 py-0.5 rounded text-xs mr-1">${ui.label(s)}</span>`).join('')}
-            ${coach.languages.map((l) => `<span class="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs mr-1">${ui.label(l)}</span>`).join('')}
+            ${instructor.specialties.map((s) => `<span class="inline-block bg-brand-100 text-brand-800 px-2 py-0.5 rounded text-xs mr-1">${ui.label(s)}</span>`).join('')}
+            ${instructor.languages.map((l) => `<span class="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs mr-1">${ui.label(l)}</span>`).join('')}
           </p>
-          <p class="text-xs text-slate-500 mt-2">${ui.label(coach.heatLevel)} · ${coach.skillLevel}/5 · max ${coach.maxDailyLessons}/day</p>
-          ${blocked ? `<p class="text-xs text-red-600 mt-2">${t('admin.coachLeave')}: ${blocked}</p>` : ''}
-          ${(coach.leaveRequests || []).filter((lr) => lr.status === 'pending').map((lr) => `<p class="text-xs text-amber-600 mt-1">${t('coach.pendingLeave')}: ${ui.formatDate(lr.date)} (${leavePeriodLabel(lr.period)})</p>`).join('')}
+          <p class="text-xs text-slate-500 mt-2">${ui.label(instructor.heatLevel)} · ${instructor.skillLevel}/5 · max ${instructor.maxDailyLessons}/day</p>
+          ${blocked ? `<p class="text-xs text-red-600 mt-2">${t('admin.instructorLeave')}: ${blocked}</p>` : ''}
+          ${(instructor.leaveRequests || []).filter((lr) => lr.status === 'pending').map((lr) => `<p class="text-xs text-amber-600 mt-1">${t('admin.instructorPendingLeave')}: ${ui.formatDate(lr.date)} (${leavePeriodLabel(lr.period)})</p>`).join('')}
         </div>
         <div class="text-right space-y-2">
-          <span class="text-xs block ${coach.active ? 'text-green-600' : 'text-red-600'}">${coach.active ? t('admin.coachActive') : t('admin.coachInactive')}</span>
-          ${coach.active
-            ? `<button data-instructor-action="block" data-id="${coach._id}" class="block text-xs text-amber-600 hover:underline">${t('admin.coachLeave')}</button>
-          <button data-instructor-action="delete" data-id="${coach._id}" data-name="${coach.name}" class="block text-xs text-red-600 hover:underline">${t('admin.deleteInstructor')}</button>`
-            : `<button data-instructor-action="reactivate" data-id="${coach._id}" class="block text-xs text-green-600 hover:underline">${t('admin.reactivateInstructor')}</button>`}
+          <span class="text-xs block ${instructor.active ? 'text-green-600' : 'text-red-600'}">${instructor.active ? t('admin.instructorActive') : t('admin.instructorInactive')}</span>
+          ${instructor.active
+            ? `<button data-instructor-action="block" data-id="${instructor._id}" class="block text-xs text-amber-600 hover:underline">${t('admin.instructorLeave')}</button>
+          <button data-instructor-action="delete" data-id="${instructor._id}" data-name="${instructor.name}" class="block text-xs text-red-600 hover:underline">${t('admin.deleteInstructor')}</button>`
+            : `<button data-instructor-action="reactivate" data-id="${instructor._id}" class="block text-xs text-green-600 hover:underline">${t('admin.reactivateInstructor')}</button>`}
         </div>
       </div>
     </div>
@@ -957,7 +957,7 @@ function renderInstructorForm() {
       <input name="phone" placeholder="${t('public.phone')}" class="border rounded-lg px-3 py-2">
       <input name="email" placeholder="Email" type="email" class="border rounded-lg px-3 py-2">
       <input name="pin" type="password" minlength="4" placeholder="${t('admin.instructorForm.pinPh')}" required class="border rounded-lg px-3 py-2">
-      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isMainland"> ${t('admin.coachMainland')}</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isMainland"> ${t('admin.instructorMainland')}</label>
       <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="isHeadInstructor"> ${t('admin.headInstructor')}</label>
       <div>
         <p class="text-sm mb-1">${t('admin.instructorForm.specialty')}</p>
@@ -1564,7 +1564,7 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
       <input type="date" id="scheduleDate" value="${startDate}" class="border rounded-lg px-3 py-2 text-sm">
       <button id="refreshSchedule" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('common.refresh')}</button>
       <button type="button" id="openScheduleEdit" class="px-4 py-2 border border-brand-300 text-brand-700 rounded-lg text-sm hover:bg-brand-50">${t('admin.nav.scheduleEdit')}</button>
-      <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline">${t('admin.coachViewLink')}</a>
+      <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline">${t('admin.instructorViewLink')}</a>
     </div>
     <div id="scheduleRangeToolbar" class="hidden flex flex-wrap gap-3 mb-4 items-end">
       <label class="text-sm">
@@ -1576,7 +1576,7 @@ async function loadScheduleView({ headOnly = false, initialDate = null } = {}) {
         <input type="date" id="scheduleRangeTo" value="${defaultRangeTo}" class="border rounded-lg px-3 py-2 text-sm">
       </label>
       <button id="searchScheduleRange" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm">${t('admin.searchRange')}</button>
-      <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline pb-2">${t('admin.coachViewLink')}</a>
+      <a href="/instructor/" target="_blank" class="text-sm text-brand-600 hover:underline pb-2">${t('admin.instructorViewLink')}</a>
     </div>
     <div id="scheduleBody"><p class="text-slate-500">${t('common.loading')}</p></div>
   `;
@@ -1729,7 +1729,7 @@ function renderResortRow(resort, regionKey) {
       </label>
       <label class="text-sm flex items-center gap-2">
         <input type="checkbox" name="resort-active-${rid}" ${resort.active !== false ? 'checked' : ''}>
-        <span>${t('admin.coachActive')}</span>
+        <span>${t('admin.instructorActive')}</span>
       </label>
       <button type="button" data-remove-resort class="text-xs text-red-600 hover:underline">${t('admin.removeResort')}</button>
     </div>`;

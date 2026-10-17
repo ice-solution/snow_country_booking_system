@@ -44,16 +44,16 @@ function isSameDay(a, b) {
   return d1.getTime() === d2.getTime();
 }
 
-function getBlocksForDate(coach, date) {
-  return (coach.blockedDates || []).filter((block) => isSameDay(block.date, date));
+function getBlocksForDate(instructor, date) {
+  return (instructor.blockedDates || []).filter((block) => isSameDay(block.date, date));
 }
 
-function isCoachOnFullDayLeave(coach, date) {
-  return getBlocksForDate(coach, date).some((block) => normalizePeriod(block.period) === 'full');
+function isInstructorOnFullDayLeave(instructor, date) {
+  return getBlocksForDate(instructor, date).some((block) => normalizePeriod(block.period) === 'full');
 }
 
-function isCoachBlockedForBookingOnDate(coach, booking, date) {
-  const blocks = getBlocksForDate(coach, date);
+function isInstructorBlockedForBookingOnDate(instructor, booking, date) {
+  const blocks = getBlocksForDate(instructor, date);
   if (!blocks.length) return false;
 
   for (const block of blocks) {
@@ -65,9 +65,11 @@ function isCoachBlockedForBookingOnDate(coach, booking, date) {
   return false;
 }
 
-function isCoachBlockedForBooking(coach, booking) {
+function isInstructorBlockedForBooking(instructor, booking) {
   const { getLessonDays } = require('./lessonDateRange');
-  return getLessonDays(booking).some((day) => isCoachBlockedForBookingOnDate(coach, booking, day));
+  return getLessonDays(booking).some((day) =>
+    isInstructorBlockedForBookingOnDate(instructor, booking, day)
+  );
 }
 
 function leavePeriodToGanttBlock(period, totalSlots) {
@@ -87,8 +89,8 @@ function leavePeriodToGanttBlock(period, totalSlots) {
   };
 }
 
-function getLeaveBlocksForCoach(coach, date, totalSlots) {
-  return getBlocksForDate(coach, date).map((block) => ({
+function getLeaveBlocksForInstructor(instructor, date, totalSlots) {
+  return getBlocksForDate(instructor, date).map((block) => ({
     ...leavePeriodToGanttBlock(block.period, totalSlots),
     reason: block.reason || '',
   }));
@@ -106,11 +108,11 @@ module.exports = {
   HALF_SLOTS,
   normalizePeriod,
   lessonOverlapsWindow,
-  isCoachOnFullDayLeave,
-  isCoachBlockedForBooking,
-  isCoachBlockedForBookingOnDate,
+  isInstructorOnFullDayLeave,
+  isInstructorBlockedForBooking,
+  isInstructorBlockedForBookingOnDate,
   getBlocksForDate,
-  getLeaveBlocksForCoach,
+  getLeaveBlocksForInstructor,
   leavePeriodLabel,
   leavePeriodToGanttBlock,
 };

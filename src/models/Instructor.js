@@ -35,7 +35,7 @@ const instructorSchema = new mongoose.Schema(
     heatLevel: { type: String, enum: HEAT_LEVELS, default: 'medium' },
     skillLevel: { type: Number, min: 1, max: 5, default: 3 },
     maxDailyLessons: { type: Number, default: 2, min: 1 },
-    isHeadInstructor: { type: Boolean, default: false, alias: 'isHeadCoach' },
+    isHeadInstructor: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
     notes: { type: String, trim: true },
     pinHash: { type: String, select: false },
@@ -70,10 +70,6 @@ const instructorSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform(_doc, ret) {
-        if (ret.isHeadCoach !== undefined && ret.isHeadInstructor === undefined) {
-          ret.isHeadInstructor = ret.isHeadCoach;
-        }
-        delete ret.isHeadCoach;
         delete ret.pinHash;
         delete ret.loginToken;
         delete ret.loginTokenExpires;
@@ -107,7 +103,7 @@ instructorSchema.methods.issueLoginToken = function issueLoginToken() {
   return token;
 };
 
-const Instructor = mongoose.model('Instructor', instructorSchema, 'coaches');
+const Instructor = mongoose.model('Instructor', instructorSchema, 'instructors');
 
 module.exports = Instructor;
 module.exports.SPECIALTIES = SPECIALTIES;

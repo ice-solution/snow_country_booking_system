@@ -128,7 +128,7 @@
             </div>
             <div>
               <p class="text-slate-500">${tr('public.instructorsRequired')}</p>
-              <p class="font-medium">${b.instructorsRequired || b.coachesRequired}</p>
+              <p class="font-medium">${b.instructorsRequired}</p>
             </div>
             <div>
               <p class="text-slate-500">${tr('public.guestName')}</p>

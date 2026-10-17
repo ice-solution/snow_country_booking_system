@@ -269,7 +269,7 @@ try {
         `時數：${session.data.durationHours} 小時\n` +
         `類型：${session.data.lessonType}\n` +
         `人數：${session.data.totalGuests}（6歲以下：${session.data.childrenUnder6}）\n` +
-        `教練：${q.coachesRequired} 組\n` +
+        `導師：${q.instructorsRequired} 組\n` +
         `預估費用：¥${q.totalAmount?.toLocaleString?.() || q.totalAmount}\n` +
         `付款：現場付款\n\n` +
         '確認提交？（輸入 yes 確認，no 取消）';
@@ -304,7 +304,7 @@ try {
         `參考：${b.id}\n` +
         `狀態：待管理員確認\n` +
         `費用：¥${b.totalAmount?.toLocaleString?.() || b.totalAmount}\n\n` +
-        '我們會盡快確認並安排教練。輸入任意文字可再次預約。';
+        '我們會盡快確認並安排導師。輸入任意文字可再次預約。';
       break;
     }
     default:

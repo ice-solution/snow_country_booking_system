@@ -84,10 +84,8 @@ const bookingValidators = {
   ],
   assign: [
     param('id').isMongoId(),
-    body('instructorIds').optional().isArray({ min: 1 }),
-    body('instructorIds.*').optional().isMongoId(),
-    body('coachIds').optional().isArray({ min: 1 }),
-    body('coachIds.*').optional().isMongoId(),
+    body('instructorIds').isArray({ min: 1 }),
+    body('instructorIds.*').isMongoId(),
     body('assignedBy').optional().trim(),
   ],
   moveSlot: [

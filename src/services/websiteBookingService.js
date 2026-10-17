@@ -1,10 +1,10 @@
 const crypto = require('crypto');
 const Booking = require('../models/Booking');
-const { calculateCoachesRequired } = require('../utils/coachRequirement');
+const { calculateInstructorsRequired } = require('../utils/instructorRequirement');
 const catalogService = require('./catalogService');
 const pricingConfigService = require('./pricingConfigService');
 const { createCheckoutSession, isStripeEnabled } = require('./stripeService');
-  const {
+const {
   parseLessonDateRange,
   getLessonSlots,
   getLessonDayCount,
@@ -15,7 +15,7 @@ function generatePublicRef() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-async function calculateSlotsTotal(resortLocation, slots, coachesRequired) {
+async function calculateSlotsTotal(resortLocation, slots, instructorsRequired) {
   let total = 0;
   let packagePrice = null;
   let currency = null;
@@ -27,7 +27,7 @@ async function calculateSlotsTotal(resortLocation, slots, coachesRequired) {
     const pricing = await pricingConfigService.calculatePrice(
       resortLocation,
       slot.durationHours,
-      coachesRequired
+      instructorsRequired
     );
     total += pricing.totalAmount;
     packagePrice = packagePrice ?? pricing.packagePrice;
@@ -44,18 +44,18 @@ async function calculateSlotsTotal(resortLocation, slots, coachesRequired) {
     regionName,
     resortName,
     region,
-    packageTotal: packagePrice != null ? packagePrice * coachesRequired : null,
+    packageTotal: packagePrice != null ? packagePrice * instructorsRequired : null,
   };
 }
 
 async function buildWebsiteBookingPayload(body) {
   const totalGuests = Number(body.totalGuests);
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
-  const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
+  const instructorsRequired = calculateInstructorsRequired(totalGuests, childrenUnder6);
   const dateRange = parseLessonDateRange(body);
   const slots = dateRange.lessonSlots || getLessonSlots(dateRange);
   const durationHours = Number(body.durationHours || dateRange.durationHours || slots[0]?.durationHours);
-  const pricing = await calculateSlotsTotal(body.resortLocation, slots, coachesRequired);
+  const pricing = await calculateSlotsTotal(body.resortLocation, slots, instructorsRequired);
 
   const payload = catalogService.applyResortToBooking({
     source: 'website',
@@ -69,7 +69,7 @@ async function buildWebsiteBookingPayload(body) {
     lessonType: body.lessonType,
     totalGuests,
     childrenUnder6,
-    coachesRequired,
+    instructorsRequired,
     guestName: body.guestName.trim(),
     phone: body.phone.trim(),
     email: body.email?.trim().toLowerCase(),
@@ -114,8 +114,7 @@ function sanitizePublicBooking(booking) {
     lessonType: booking.lessonType,
     totalGuests: booking.totalGuests,
     childrenUnder6: booking.childrenUnder6,
-    coachesRequired: booking.coachesRequired,
-    instructorsRequired: booking.coachesRequired,
+    instructorsRequired: booking.instructorsRequired,
     guestName: booking.guestName,
     phone: booking.phone,
     email: booking.email,
@@ -139,7 +138,7 @@ async function getQuote({
   lessonDateTo,
   lessonSlots,
 }) {
-  const coachesRequired = calculateCoachesRequired(
+  const instructorsRequired = calculateInstructorsRequired(
     Number(totalGuests),
     Number(childrenUnder6 || 0)
   );
@@ -161,7 +160,7 @@ async function getQuote({
   } catch {
     if (!durationHours) {
       return {
-        coachesRequired,
+        instructorsRequired,
         totalGuests: Number(totalGuests),
         stripeEnabled: isStripeEnabled(),
       };
@@ -169,10 +168,10 @@ async function getQuote({
     const pricing = await pricingConfigService.calculatePrice(
       resortLocation,
       Number(durationHours),
-      coachesRequired
+      instructorsRequired
     );
     return {
-      coachesRequired,
+      instructorsRequired,
       ...pricing,
       packageTotal: pricing.totalAmount,
       totalAmount: pricing.totalAmount,
@@ -187,7 +186,7 @@ async function getQuote({
     slots = [{ durationHours: Number(durationHours), startTime: '09:00', date: new Date() }];
   }
 
-  const pricing = await calculateSlotsTotal(resortLocation, slots, coachesRequired);
+  const pricing = await calculateSlotsTotal(resortLocation, slots, instructorsRequired);
   const dayCount = slots.length;
 
   let capacity = null;
@@ -210,7 +209,7 @@ async function getQuote({
 
   const primaryDuration = Number(durationHours || slots[0]?.durationHours);
   return {
-    coachesRequired,
+    instructorsRequired,
     packagePrice: pricing.packagePrice,
     currency: pricing.currency,
     region: pricing.region,

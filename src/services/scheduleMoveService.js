@@ -7,8 +7,8 @@ const {
   syncBookingLessonDates,
 } = require('../utils/lessonDateRange');
 const {
-  coachPassesAllLessonDays,
-  scoreCoach,
+  instructorPassesAllLessonDays,
+  scoreInstructor,
 } = require('./assignmentService');
 
 function materializeSlots(booking) {
@@ -53,14 +53,14 @@ function findSlotIndex(slots, { slotIndex, fromDate, fromStartTime }) {
 
 function replaceInstructor(assigned, fromInstructorId, toInstructorId) {
   const list = (assigned || []).map((a) => ({
-    coach: a.coach?._id || a.coach,
+    instructor: a.instructor?._id || a.instructor,
     assignmentScore: a.assignmentScore,
     assignedBy: a.assignedBy || 'admin',
     assignedAt: a.assignedAt || new Date(),
   }));
 
   const toId = String(toInstructorId);
-  if (list.some((a) => String(a.coach) === toId)) {
+  if (list.some((a) => String(a.instructor) === toId)) {
     const error = new Error('Target instructor is already assigned to this booking');
     error.status = 400;
     throw error;
@@ -68,14 +68,14 @@ function replaceInstructor(assigned, fromInstructorId, toInstructorId) {
 
   if (fromInstructorId) {
     const fromId = String(fromInstructorId);
-    const idx = list.findIndex((a) => String(a.coach) === fromId);
+    const idx = list.findIndex((a) => String(a.instructor) === fromId);
     if (idx === -1) {
       const error = new Error('Source instructor is not assigned to this booking');
       error.status = 400;
       throw error;
     }
     list[idx] = {
-      coach: toInstructorId,
+      instructor: toInstructorId,
       assignmentScore: undefined,
       assignedBy: 'admin-drag',
       assignedAt: new Date(),
@@ -85,7 +85,7 @@ function replaceInstructor(assigned, fromInstructorId, toInstructorId) {
 
   if (list.length === 1) {
     list[0] = {
-      coach: toInstructorId,
+      instructor: toInstructorId,
       assignmentScore: undefined,
       assignedBy: 'admin-drag',
       assignedAt: new Date(),
@@ -96,7 +96,7 @@ function replaceInstructor(assigned, fromInstructorId, toInstructorId) {
   if (!list.length) {
     return [
       {
-        coach: toInstructorId,
+        instructor: toInstructorId,
         assignmentScore: undefined,
         assignedBy: 'admin-drag',
         assignedAt: new Date(),
@@ -111,22 +111,22 @@ function replaceInstructor(assigned, fromInstructorId, toInstructorId) {
   throw error;
 }
 
-async function validateInstructorsForBooking(booking, coachIds) {
-  const coaches = await Instructor.find({ _id: { $in: coachIds }, active: true });
-  if (coaches.length !== coachIds.length) {
+async function validateInstructorsForBooking(booking, instructorIds) {
+  const instructors = await Instructor.find({ _id: { $in: instructorIds }, active: true });
+  if (instructors.length !== instructorIds.length) {
     const error = new Error('Some instructors were not found or are inactive');
     error.status = 400;
     throw error;
   }
-  for (const coach of coaches) {
-    const dayCheck = await coachPassesAllLessonDays(coach, booking, { forReassign: true });
+  for (const instructor of instructors) {
+    const dayCheck = await instructorPassesAllLessonDays(instructor, booking, { forReassign: true });
     if (!dayCheck.ok) {
       const error = new Error(dayCheck.reason);
       error.status = 400;
       throw error;
     }
   }
-  return coaches;
+  return instructors;
 }
 
 /**
@@ -169,7 +169,6 @@ async function moveLessonSlot(bookingId, body = {}) {
     durationHours: nextDuration,
   };
 
-  // sort by date/time
   slots.sort((a, b) => {
     const d = a.date - b.date;
     if (d !== 0) return d;
@@ -185,7 +184,11 @@ async function moveLessonSlot(bookingId, body = {}) {
   const fromInstructorId = body.fromInstructorId || null;
 
   if (toInstructorId) {
-    if (booking.coachesRequired > 1 && !fromInstructorId && (booking.assignedCoaches || []).length > 1) {
+    if (
+      booking.instructorsRequired > 1 &&
+      !fromInstructorId &&
+      (booking.assignedInstructors || []).length > 1
+    ) {
       const error = new Error(
         'This booking needs multiple instructors — drag from a specific instructor row (fromInstructorId required)'
       );
@@ -202,52 +205,57 @@ async function moveLessonSlot(bookingId, body = {}) {
     let nextAssigned;
     if (
       booking.status === 'confirmed' ||
-      !(booking.assignedCoaches || []).length
+      !(booking.assignedInstructors || []).length
     ) {
-      if (booking.coachesRequired !== 1) {
+      if (booking.instructorsRequired !== 1) {
         const error = new Error(
-          `This booking requires ${booking.coachesRequired} instructors — assign from booking detail first`
+          `This booking requires ${booking.instructorsRequired} instructors — assign from booking detail first`
         );
         error.status = 400;
         throw error;
       }
       nextAssigned = [
         {
-          coach: toInstructorId,
+          instructor: toInstructorId,
           assignedBy: 'admin-drag',
           assignedAt: new Date(),
         },
       ];
     } else {
-      nextAssigned = replaceInstructor(booking.assignedCoaches, fromInstructorId, toInstructorId);
+      nextAssigned = replaceInstructor(
+        booking.assignedInstructors,
+        fromInstructorId,
+        toInstructorId
+      );
     }
 
-    const coachIds = nextAssigned.map((a) => a.coach);
-    if (coachIds.length !== booking.coachesRequired) {
+    const instructorIds = nextAssigned.map((a) => a.instructor);
+    if (instructorIds.length !== booking.instructorsRequired) {
       const error = new Error(
-        `This booking requires ${booking.coachesRequired} instructor(s) after the move`
+        `This booking requires ${booking.instructorsRequired} instructor(s) after the move`
       );
       error.status = 400;
       throw error;
     }
 
-    const coaches = await validateInstructorsForBooking(booking, coachIds);
-    const byId = Object.fromEntries(coaches.map((c) => [String(c._id), c]));
-    booking.assignedCoaches = nextAssigned.map((a) => ({
-      coach: a.coach,
-      assignmentScore: scoreCoach(byId[String(a.coach)], booking),
+    const instructors = await validateInstructorsForBooking(booking, instructorIds);
+    const byId = Object.fromEntries(instructors.map((i) => [String(i._id), i]));
+    booking.assignedInstructors = nextAssigned.map((a) => ({
+      instructor: a.instructor,
+      assignmentScore: scoreInstructor(byId[String(a.instructor)], booking),
       assignedBy: a.assignedBy || 'admin-drag',
       assignedAt: a.assignedAt || new Date(),
     }));
     booking.status = 'assigned';
-  } else if ((booking.assignedCoaches || []).length) {
-    // Date-only move: still validate assigned instructors against new slots
-    const coachIds = booking.assignedCoaches.map((a) => a.coach?._id || a.coach);
-    await validateInstructorsForBooking(booking, coachIds);
+  } else if ((booking.assignedInstructors || []).length) {
+    const instructorIds = booking.assignedInstructors.map(
+      (a) => a.instructor?._id || a.instructor
+    );
+    await validateInstructorsForBooking(booking, instructorIds);
   }
 
   await booking.save();
-  return booking.populate('assignedCoaches.coach', 'name phone email specialties');
+  return booking.populate('assignedInstructors.instructor', 'name phone email specialties');
 }
 
 /**
@@ -265,7 +273,7 @@ async function getScheduleBoard({ from, to }) {
       lessonDateFrom: { $lte: end },
       lessonDateTo: { $gte: start },
     })
-      .populate('assignedCoaches.coach', 'name')
+      .populate('assignedInstructors.instructor', 'name')
       .sort({ lessonDateFrom: 1, lessonStartTime: 1 }),
   ]);
 
@@ -284,9 +292,9 @@ async function getScheduleBoard({ from, to }) {
       const dateKey = toIsoDate(slot.date);
       if (dateKey < dates[0] || dateKey > dates[dates.length - 1]) return;
 
-      const assigned = (booking.assignedCoaches || []).map((a) => ({
-        instructorId: a.coach?._id || a.coach,
-        name: a.coach?.name || '',
+      const assigned = (booking.assignedInstructors || []).map((a) => ({
+        instructorId: a.instructor?._id || a.instructor,
+        name: a.instructor?.name || '',
       }));
 
       cards.push({
@@ -300,7 +308,7 @@ async function getScheduleBoard({ from, to }) {
         resortLocation: booking.resortLocation,
         region: booking.region,
         status: booking.status,
-        instructorsRequired: booking.coachesRequired,
+        instructorsRequired: booking.instructorsRequired,
         assignedInstructors: assigned,
         hasMultipleSlots: slots.length > 1,
         slotCount: slots.length,

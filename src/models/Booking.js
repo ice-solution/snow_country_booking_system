@@ -20,9 +20,9 @@ const LANGUAGE_PREFS = ['zh', 'en', 'any'];
 const PAYMENT_METHODS = ['stripe', 'on_site'];
 const PAYMENT_STATUSES = ['unpaid', 'paid_online', 'pay_on_site', 'paid_on_site'];
 
-const assignedCoachSchema = new mongoose.Schema(
+const assignedInstructorSchema = new mongoose.Schema(
   {
-    coach: { type: mongoose.Schema.Types.ObjectId, ref: 'Instructor', required: true },
+    instructor: { type: mongoose.Schema.Types.ObjectId, ref: 'Instructor', required: true },
     assignmentScore: { type: Number },
     assignedBy: { type: String, default: 'manual' },
     assignedAt: { type: Date, default: Date.now },
@@ -55,7 +55,7 @@ const bookingSchema = new mongoose.Schema(
 
     totalGuests: { type: Number, required: true, min: 1 },
     childrenUnder6: { type: Number, default: 0, min: 0 },
-    coachesRequired: { type: Number, required: true, min: 1, max: 2 },
+    instructorsRequired: { type: Number, required: true, min: 1, max: 2 },
 
     guestName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
@@ -80,7 +80,7 @@ const bookingSchema = new mongoose.Schema(
 
     lessonStartTime: { type: String, trim: true },
 
-    assignedCoaches: [assignedCoachSchema],
+    assignedInstructors: [assignedInstructorSchema],
 
     confirmedAt: { type: Date },
     confirmedBy: { type: String },
@@ -90,17 +90,6 @@ const bookingSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform(_doc, ret) {
-        ret.instructorsRequired = ret.coachesRequired;
-        delete ret.coachesRequired;
-        if (Array.isArray(ret.assignedCoaches)) {
-          ret.assignedInstructors = ret.assignedCoaches.map((a) => ({
-            instructor: a.coach,
-            assignmentScore: a.assignmentScore,
-            assignedBy: a.assignedBy,
-            assignedAt: a.assignedAt,
-          }));
-          delete ret.assignedCoaches;
-        }
         ret.lessonDayCount = getLessonDayCount(ret);
         return ret;
       },

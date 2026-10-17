@@ -315,10 +315,10 @@ async function updateQuote() {
       capEl.classList.add('hidden');
     }
 
-    const instructorsRequired = q.instructorsRequired || q.coachesRequired;
-    let coachNote = tr('public.instructorsNeeded', { n: instructorsRequired });
-    if (childrenUnder6 >= 2) coachNote += ' ' + tr('public.coachesChild');
-    else if (totalGuests > 4) coachNote += ' ' + tr('public.coachesOver4');
+    const instructorsRequired = q.instructorsRequired;
+    let instructorNote = tr('public.instructorsNeeded', { n: instructorsRequired });
+    if (childrenUnder6 >= 2) instructorNote += ' ' + tr('public.instructorsChild');
+    else if (totalGuests > 4) instructorNote += ' ' + tr('public.instructorsOver4');
 
     const packageNote =
       instructorsRequired > 1
@@ -362,7 +362,7 @@ async function updateQuote() {
           <span class="text-brand-700">${ui.formatMoney(q.totalAmount, q.currency)}</span>
         </div>
         <p class="text-xs text-slate-500">${packageNote}</p>
-        <p class="text-sm text-brand-700 bg-brand-50 rounded-lg px-3 py-2">${coachNote}</p>
+        <p class="text-sm text-brand-700 bg-brand-50 rounded-lg px-3 py-2">${instructorNote}</p>
         <p class="text-xs text-slate-500">${pricingNoteText()}</p>
       </div>
     `;

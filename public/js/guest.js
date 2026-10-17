@@ -52,9 +52,8 @@ function renderGuest(g) {
           ${field(t('public.languagePref'), ui.label(g.languagePref))}
           ${field(t('public.totalGuests'), `${g.totalGuests} ${t('common.people')}`)}
           ${field(t('public.childrenUnder6'), String(g.childrenUnder6))}
-          ${field(t('public.instructorsRequired'), String(g.instructorsRequired || g.coachesRequired))}
+          ${field(t('public.instructorsRequired'), String(g.instructorsRequired))}
           ${g.assignedInstructors?.length ? field(t('admin.assignedInstructors'), g.assignedInstructors.join(', ')) : ''}
-          ${g.assignedCoaches?.length && !g.assignedInstructors?.length ? field(t('admin.assignedInstructors'), g.assignedCoaches.join(', ')) : ''}
         </div>
       </section>
 
@@ -88,7 +87,6 @@ function renderGuest(g) {
 async function loadGuest() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
-  const coachId = params.get('coachId');
   const el = document.getElementById('content');
 
   if (!id) {
@@ -97,9 +95,12 @@ async function loadGuest() {
   }
 
   try {
+    const instructorToken = localStorage.getItem('instructorToken') || '';
     let res;
-    if (coachId) {
-      res = await fetch(`/api/v1/coach-view/bookings/${id}?coachId=${encodeURIComponent(coachId)}`);
+    if (instructorToken) {
+      res = await fetch(`/api/v1/instructor-view/bookings/${id}`, {
+        headers: { 'X-Instructor-Token': instructorToken },
+      });
     } else {
       const apiKey = localStorage.getItem('adminApiKey') || '';
       res = await fetch(`/api/v1/bookings/${id}/guest`, {

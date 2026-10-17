@@ -1,7 +1,9 @@
 require('dotenv').config();
+const mongoose = require('mongoose');
 const createApp = require('./app');
 const { connectDatabase } = require('./config/database');
 const Booking = require('./models/Booking');
+const { migrateLegacyInstructorFields } = require('./migrations/legacyInstructorFields');
 
 const PORT = process.env.PORT || 3000;
 
@@ -28,6 +30,7 @@ async function migrateLessonDateRange() {
 async function start() {
   await connectDatabase();
   await migrateLessonDateRange();
+  await migrateLegacyInstructorFields(mongoose.connection.db);
   const app = createApp();
 
   app.listen(PORT, () => {

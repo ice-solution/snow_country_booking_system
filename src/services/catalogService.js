@@ -159,7 +159,7 @@ async function loadCatalog() {
     regionMap,
     resortMap,
     note: PRICING_NOTE,
-    includes: ['Coach fee', 'Basic insurance'],
+    includes: ['Instructor fee', 'Basic insurance'],
     excludes: ['Lift pass', 'Equipment rental', 'Meals'],
     maxGuestsPerInstructor: 4,
   };
@@ -190,7 +190,6 @@ async function getPricingTable() {
     includes: catalog.includes,
     excludes: catalog.excludes,
     maxGuestsPerInstructor: catalog.maxGuestsPerInstructor,
-    maxGuestsPerCoach: catalog.maxGuestsPerInstructor,
   };
 }
 
@@ -249,7 +248,7 @@ async function getPricingRegion(regionId) {
   };
 }
 
-async function calculatePrice(resortIdOrRegion, durationHours, coachesRequired) {
+async function calculatePrice(resortIdOrRegion, durationHours, instructorsRequired) {
   const catalog = await loadCatalog();
   const resort = catalog.resortMap[resortIdOrRegion];
   const regionId = resort?.region || resortIdOrRegion;
@@ -267,7 +266,7 @@ async function calculatePrice(resortIdOrRegion, durationHours, coachesRequired) 
     throw error;
   }
 
-  const coaches = Number(coachesRequired) || 1;
+  const instructors = Number(instructorsRequired) || 1;
   return {
     resortLocation: resort?.id || null,
     resortName: resort?.name || null,
@@ -275,9 +274,9 @@ async function calculatePrice(resortIdOrRegion, durationHours, coachesRequired) 
     regionName: region.name,
     currency: CURRENCY,
     packagePrice,
-    coachesRequired: coaches,
+    instructorsRequired: instructors,
     durationHours,
-    totalAmount: packagePrice * coaches,
+    totalAmount: packagePrice * instructors,
   };
 }
 

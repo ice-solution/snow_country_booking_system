@@ -1,33 +1,33 @@
 const Booking = require('../models/Booking');
 const Instructor = require('../models/Instructor');
 const { normalizeDate } = require('./scheduleService');
-const { isCoachOnFullDayLeave } = require('../utils/leavePeriods');
+const { isInstructorOnFullDayLeave } = require('../utils/leavePeriods');
 const { mongoOverlapsDay, bookingOverlapsDay } = require('../utils/lessonDateRange');
 
 const ACTIVE_STATUSES = ['pending', 'confirmed', 'assigned', 'needs_attention'];
 
-function coachAvailableOnDate(coach, date) {
-  return !isCoachOnFullDayLeave(coach, date);
+function instructorAvailableOnDate(instructor, date) {
+  return !isInstructorOnFullDayLeave(instructor, date);
 }
 
 async function getDailyCapacity(date, { headOnly = false } = {}) {
   const targetDate = normalizeDate(date);
 
-  const coachFilter = { active: true };
-  if (headOnly) coachFilter.isHeadCoach = true;
+  const instructorFilter = { active: true };
+  if (headOnly) instructorFilter.isHeadInstructor = true;
 
-  const coaches = await Instructor.find(coachFilter);
-  const availableCoaches = coaches.filter((c) => coachAvailableOnDate(c, targetDate));
+  const instructors = await Instructor.find(instructorFilter);
+  const availableInstructors = instructors.filter((i) => instructorAvailableOnDate(i, targetDate));
 
-  const supply = availableCoaches.reduce((sum, c) => sum + (c.maxDailyLessons || 2), 0);
+  const supply = availableInstructors.reduce((sum, i) => sum + (i.maxDailyLessons || 2), 0);
 
   const bookings = (await Booking.find({
     status: { $in: ACTIVE_STATUSES },
     ...mongoOverlapsDay(targetDate),
   })).filter((b) => bookingOverlapsDay(b, targetDate));
 
-  const demand = bookings.reduce((sum, b) => sum + (b.coachesRequired || 1), 0);
-  const unassigned = bookings.filter((b) => !b.assignedCoaches?.length).length;
+  const demand = bookings.reduce((sum, b) => sum + (b.instructorsRequired || 1), 0);
+  const unassigned = bookings.filter((b) => !b.assignedInstructors?.length).length;
   const remaining = supply - demand;
 
   let status = 'ok';
@@ -40,7 +40,7 @@ async function getDailyCapacity(date, { headOnly = false } = {}) {
     demand,
     remaining,
     unassigned,
-    coachCount: availableCoaches.length,
+    instructorCount: availableInstructors.length,
     status,
     overbooked: demand > supply,
   };

@@ -4,9 +4,9 @@ const Instructor = require('../src/models/Instructor');
 
 const SAMPLE_INSTRUCTORS = [
   {
-    name: '陳教練',
+    name: '陳導師',
     phone: '91234567',
-    email: 'coach.chen@example.com',
+    email: 'instructor.chen@example.com',
     specialties: ['ski', 'snowboard'],
     languages: ['zh', 'en'],
     isMainland: true,

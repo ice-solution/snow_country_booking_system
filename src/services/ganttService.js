@@ -1,7 +1,7 @@
 const Booking = require('../models/Booking');
 const Instructor = require('../models/Instructor');
 const catalogService = require('./catalogService');
-const { getLeaveBlocksForCoach } = require('../utils/leavePeriods');
+const { getLeaveBlocksForInstructor } = require('../utils/leavePeriods');
 const {
   generateTimeSlots,
   timeToSlotIndex,
@@ -74,12 +74,12 @@ async function getGantt({ date, instructorId, headOnly = false }) {
 
   const instructorFilter = { active: true };
   if (instructorId) instructorFilter._id = instructorId;
-  if (headOnly) instructorFilter.isHeadCoach = true;
+  if (headOnly) instructorFilter.isHeadInstructor = true;
 
   const instructors = await Instructor.find(instructorFilter).sort({ name: 1 });
 
   const bookings = (await Booking.find(bookingFilter)
-    .populate('assignedCoaches.coach', 'name')
+    .populate('assignedInstructors.instructor', 'name')
     .sort({ lessonStartTime: 1 })).filter((b) => bookingOverlapsDay(b, targetDate));
 
   const timeSlots = generateTimeSlots();
@@ -89,20 +89,22 @@ async function getGantt({ date, instructorId, headOnly = false }) {
 
   for (const instructor of instructors) {
     const instructorBookings = bookings.filter((b) =>
-      b.assignedCoaches.some((a) => a.coach?._id?.toString() === instructor._id.toString())
+      b.assignedInstructors.some(
+        (a) => a.instructor?._id?.toString() === instructor._id.toString()
+      )
     );
 
     rows.push({
       instructorId: instructor._id,
       instructorName: instructor.name,
       specialties: instructor.specialties,
-      leaveBlocks: getLeaveBlocksForCoach(instructor, targetDate, timeSlots.length),
+      leaveBlocks: getLeaveBlocksForInstructor(instructor, targetDate, timeSlots.length),
       blocks: instructorBookings.map((b) => bookingToBlock(b, instructor._id, resortMap, targetDate)),
     });
   }
 
   const unassigned = bookings
-    .filter((b) => !b.assignedCoaches?.length)
+    .filter((b) => !b.assignedInstructors?.length)
     .map((b) => bookingToBlock(b, null, resortMap, targetDate));
 
   const { getDailyCapacity } = require('./capacityService');
@@ -140,7 +142,7 @@ async function getInstructorSchedule(instructorId, { from, to } = {}) {
   const bookings = await Booking.find({
     status: { $in: ['confirmed', 'assigned', 'completed', 'needs_attention'] },
     ...mongoOverlapsRange(start, end),
-    'assignedCoaches.coach': instructorId,
+    'assignedInstructors.instructor': instructorId,
   }).sort({ lessonDateFrom: 1, lessonStartTime: 1 });
 
   const byDate = {};
@@ -161,4 +163,4 @@ async function getInstructorSchedule(instructorId, { from, to } = {}) {
   };
 }
 
-module.exports = { getGantt, getInstructorSchedule, getCoachSchedule: getInstructorSchedule, bookingToBlock };
+module.exports = { getGantt, getInstructorSchedule, bookingToBlock };

@@ -1,6 +1,6 @@
 const Booking = require('../models/Booking');
 const Instructor = require('../models/Instructor');
-const { isCoachBlockedForBookingOnDate } = require('../utils/leavePeriods');
+const { isInstructorBlockedForBookingOnDate } = require('../utils/leavePeriods');
 const { mongoOverlapsDay, formatLessonDateRange } = require('../utils/lessonDateRange');
 
 function normalizeDate(dateInput) {
@@ -15,26 +15,26 @@ function isSameDay(a, b) {
   return d1.getTime() === d2.getTime();
 }
 
-async function getCoachLeaveConflicts() {
-  const coaches = await Instructor.find({ active: true, 'blockedDates.0': { $exists: true } });
+async function getInstructorLeaveConflicts() {
+  const instructors = await Instructor.find({ active: true, 'blockedDates.0': { $exists: true } });
   const alerts = [];
 
-  for (const coach of coaches) {
-    for (const block of coach.blockedDates) {
+  for (const instructor of instructors) {
+    for (const block of instructor.blockedDates) {
       const bookings = await Booking.find({
         status: { $in: ['assigned', 'confirmed'] },
         ...mongoOverlapsDay(block.date),
-        'assignedCoaches.coach': coach._id,
+        'assignedInstructors.instructor': instructor._id,
       }).select('guestName lessonDateFrom lessonDateTo lessonDate durationHours status phone');
 
       for (const booking of bookings) {
-        if (!isCoachBlockedForBookingOnDate(coach, booking, block.date)) continue;
+        if (!isInstructorBlockedForBookingOnDate(instructor, booking, block.date)) continue;
         alerts.push({
-          type: 'coach_leave_conflict',
+          type: 'instructor_leave_conflict',
           severity: 'high',
-          message: `Instructor ${coach.name} is on leave but still assigned on ${formatLessonDateRange(booking, 'en-GB')} (${booking.guestName})`,
-          coachId: coach._id,
-          coachName: coach.name,
+          message: `Instructor ${instructor.name} is on leave but still assigned on ${formatLessonDateRange(booking, 'en-GB')} (${booking.guestName})`,
+          instructorId: instructor._id,
+          instructorName: instructor.name,
           bookingId: booking._id,
           lessonDate: booking.lessonDateFrom || booking.lessonDate,
           blockReason: block.reason,
@@ -52,15 +52,15 @@ async function getUnassignableBookings() {
   const alerts = [];
 
   for (const booking of confirmed) {
-    const eligible = await assignmentService.getAvailableCoachesForBooking(booking);
-    if (eligible.length < booking.coachesRequired) {
+    const eligible = await assignmentService.getAvailableInstructorsForBooking(booking);
+    if (eligible.length < booking.instructorsRequired) {
       alerts.push({
-        type: 'insufficient_coaches',
+        type: 'insufficient_instructors',
         severity: 'medium',
-        message: `Booking ${booking.guestName} (${formatLessonDateRange(booking, 'en-GB')}) has insufficient eligible instructors: need ${booking.coachesRequired}, only ${eligible.length} available`,
+        message: `Booking ${booking.guestName} (${formatLessonDateRange(booking, 'en-GB')}) has insufficient eligible instructors: need ${booking.instructorsRequired}, only ${eligible.length} available`,
         bookingId: booking._id,
         lessonDate: booking.lessonDateFrom || booking.lessonDate,
-        coachesRequired: booking.coachesRequired,
+        instructorsRequired: booking.instructorsRequired,
         eligibleCount: eligible.length,
       });
     }
@@ -74,8 +74,8 @@ async function getPendingReviewCount() {
 }
 
 async function getAllAlerts() {
-  const [leaveConflicts, insufficientCoaches, pendingCount, needsAttention] = await Promise.all([
-    getCoachLeaveConflicts(),
+  const [leaveConflicts, insufficientInstructors, pendingCount, needsAttention] = await Promise.all([
+    getInstructorLeaveConflicts(),
     getUnassignableBookings(),
     getPendingReviewCount(),
     Booking.find({ status: 'needs_attention' }).sort({ lessonDateFrom: 1 }).limit(20),
@@ -90,7 +90,7 @@ async function getAllAlerts() {
     adminNotes: b.adminNotes,
   }));
 
-  const alerts = [...leaveConflicts, ...insufficientCoaches, ...attentionAlerts];
+  const alerts = [...leaveConflicts, ...insufficientInstructors, ...attentionAlerts];
 
   return {
     alerts,
@@ -100,7 +100,7 @@ async function getAllAlerts() {
       medium: alerts.filter((a) => a.severity === 'medium').length,
       pendingReview: pendingCount,
       leaveConflicts: leaveConflicts.length,
-      insufficientCoaches: insufficientCoaches.length,
+      insufficientInstructors: insufficientInstructors.length,
     },
   };
 }
@@ -110,18 +110,17 @@ async function markBookingsNeedsAttentionForInstructorDate(instructorId, date, r
   if (!instructor) return [];
 
   const { mongoOverlapsDay } = require('../utils/lessonDateRange');
-  const { isCoachBlockedForBookingOnDate } = require('../utils/leavePeriods');
   const target = normalizeDate(date);
 
   const bookings = await Booking.find({
     status: 'assigned',
     ...mongoOverlapsDay(target),
-    'assignedCoaches.coach': instructorId,
+    'assignedInstructors.instructor': instructorId,
   });
 
   const affected = [];
   for (const booking of bookings) {
-    if (!isCoachBlockedForBookingOnDate(instructor, booking, target)) continue;
+    if (!isInstructorBlockedForBookingOnDate(instructor, booking, target)) continue;
     booking.status = 'needs_attention';
     booking.adminNotes = `Instructor on leave: ${reason || 'No reason given'}. Please reassign instructors.`;
     await booking.save();
@@ -133,9 +132,8 @@ async function markBookingsNeedsAttentionForInstructorDate(instructorId, date, r
 
 module.exports = {
   getAllAlerts,
-  getCoachLeaveConflicts,
+  getInstructorLeaveConflicts,
   getUnassignableBookings,
   markBookingsNeedsAttentionForInstructorDate,
-  markBookingsNeedsAttentionForCoachDate: markBookingsNeedsAttentionForInstructorDate,
   isSameDay,
 };

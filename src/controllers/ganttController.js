@@ -5,7 +5,7 @@ async function getGantt(req, res, next) {
     const { date, instructorId, headOnly } = req.query;
     const data = await ganttService.getGantt({
       date,
-      instructorId: instructorId || req.query.coachId,
+      instructorId,
       headOnly: headOnly === 'true' || headOnly === '1',
     });
     res.json({ success: true, data });

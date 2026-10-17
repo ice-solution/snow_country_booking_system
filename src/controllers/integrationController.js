@@ -1,5 +1,5 @@
 const Booking = require('../models/Booking');
-const { calculateCoachesRequired } = require('../utils/coachRequirement');
+const { calculateInstructorsRequired } = require('../utils/instructorRequirement');
 const catalogService = require('../services/catalogService');
 const pricingConfigService = require('../services/pricingConfigService');
 const { createBookingFromKlookEmail, parseKlookEmail } = require('../services/klookImportService');
@@ -13,7 +13,7 @@ async function buildIntegrationPayload(body) {
   const totalGuests = Number(body.totalGuests);
   const childrenUnder6 = Number(body.childrenUnder6 || 0);
   const durationHours = Number(body.durationHours);
-  const coachesRequired = calculateCoachesRequired(totalGuests, childrenUnder6);
+  const instructorsRequired = calculateInstructorsRequired(totalGuests, childrenUnder6);
   const dateRange = parseLessonDateRange(body);
   const dayCount = dateRange.lessonDayCount;
 
@@ -27,7 +27,7 @@ async function buildIntegrationPayload(body) {
     lessonType: body.lessonType,
     totalGuests,
     childrenUnder6,
-    coachesRequired,
+    instructorsRequired,
     guestName: body.guestName.trim(),
     phone: body.phone.trim(),
     email: body.email?.trim().toLowerCase(),
@@ -46,7 +46,7 @@ async function buildIntegrationPayload(body) {
     const pricing = await pricingConfigService.calculatePrice(
       body.resortLocation,
       durationHours,
-      coachesRequired
+      instructorsRequired
     );
     payload.totalAmount = pricing.totalAmount * dayCount;
     payload.currency = pricing.currency;
@@ -72,7 +72,7 @@ async function createIntegrationBooking(req, res, next) {
       data: {
         id: booking._id,
         status: booking.status,
-        coachesRequired: booking.coachesRequired,
+        instructorsRequired: booking.instructorsRequired,
         totalAmount: booking.totalAmount,
         currency: booking.currency,
         lessonDate: booking.lessonDate,
